@@ -1,0 +1,18 @@
+{
+    "id": 99999,
+    "name": "TEST_SCHEDULING_STRICT",
+    "approval_status": "approved",
+    "publish_time_iso": "2026-02-24T12:00:00",
+    "caption": "Test strict scheduling - future post",
+    "product": {
+        "name": "Test Product",
+        "price": "100",
+        "images": [
+            "https://bitcomunicaciones.com/wp-content/uploads/2023/04/cropped-Logo-Bit-Recuperado-1.png"
+        ]
+    },
+    "design": {
+        "show_price": true,
+        "theme": "modern"
+    }
+}

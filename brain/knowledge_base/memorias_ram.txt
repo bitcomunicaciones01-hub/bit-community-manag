@@ -1,0 +1,283 @@
+# Memorias RAM para Notebooks - Guía Técnica
+
+## Tipos de RAM
+
+### DDR (Double Data Rate)
+
+**DDR2** (2003-2010)
+- Notebooks antiguos
+- Velocidades: 533, 667, 800 MHz
+- Voltaje: 1.8V
+- Obsoleto
+
+**DDR3** (2007-2015)
+- Notebooks 2010-2015
+- Velocidades: 1066, 1333, 1600, 1866 MHz
+- Voltaje: 1.5V (estándar) o 1.35V (DDR3L - Low Voltage)
+- Muy común en notebooks usados
+
+**DDR4** (2014-presente)
+- Notebooks 2015-2023
+- Velocidades: 2133, 2400, 2666, 2933, 3200 MHz
+- Voltaje: 1.2V
+- Estándar actual
+
+**DDR5** (2021-presente)
+- Notebooks 2022+
+- Velocidades: 4800, 5200, 5600, 6000 MHz
+- Voltaje: 1.1V
+- Última generación
+
+### Formatos
+
+**SO-DIMM (Small Outline DIMM)**
+- Formato estándar para notebooks
+- 204 pines: DDR3
+- 260 pines: DDR4
+- 262 pines: DDR5
+- Tamaño: ~67mm x 30mm
+
+**DIMM (Desktop)**
+- NO compatible con notebooks
+- Más largo (~133mm)
+- Usado solo en PCs de escritorio
+
+## Compatibilidad
+
+### Verificar Antes de Comprar
+
+1. **Tipo de RAM**: DDR3, DDR4 o DDR5 (NO son intercambiables)
+2. **Velocidad (MHz)**: Debe ser compatible con el chipset
+3. **Capacidad máxima**: Por slot y total del sistema
+4. **Número de slots**: 1, 2, o 4 (raro en notebooks)
+5. **Voltaje**: Especialmente importante en DDR3 (1.5V vs 1.35V)
+
+### Cómo Verificar Compatibilidad
+
+**Método 1: Software**
+- CPU-Z (gratis): Muestra tipo, velocidad, slots
+- Crucial System Scanner: Detecta automáticamente
+- Especcy: Información completa del sistema
+
+**Método 2: Manual del Notebook**
+- Buscar modelo exacto + "RAM upgrade"
+- Revisar especificaciones técnicas
+
+**Método 3: Abrir el Notebook**
+- Ver etiqueta en módulo RAM actual
+- Ejemplo: "8GB 2Rx8 PC4-2666V-SA2-11"
+  - 8GB: Capacidad
+  - DDR4: PC4
+  - 2666 MHz: Velocidad
+  - SO-DIMM: SA
+
+### Compatibilidad por Generación de Procesador
+
+**Intel**
+- 2nd-3rd Gen (Sandy/Ivy Bridge): DDR3 1333/1600
+- 4th-5th Gen (Haswell/Broadwell): DDR3/DDR3L 1600
+- 6th-10th Gen (Skylake-Comet Lake): DDR4 2133-2666
+- 11th-13th Gen (Tiger Lake-Raptor Lake): DDR4 3200 o DDR5 4800-5600
+- 14th Gen (Meteor Lake): DDR5 5600
+
+**AMD**
+- Ryzen 1000-2000: DDR4 2400-2666
+- Ryzen 3000-4000: DDR4 2666-3200
+- Ryzen 5000: DDR4 3200
+- Ryzen 6000-7000: DDR5 4800-5600
+
+## Capacidades y Configuraciones
+
+### Capacidad por Uso
+
+**Uso Básico (Web, Office)**
+- Mínimo: 4GB
+- Recomendado: 8GB
+- Óptimo: 16GB
+
+**Uso Intermedio (Multitarea, Diseño Ligero)**
+- Mínimo: 8GB
+- Recomendado: 16GB
+- Óptimo: 32GB
+
+**Uso Intensivo (Gaming, Edición de Video, VMs)**
+- Mínimo: 16GB
+- Recomendado: 32GB
+- Óptimo: 64GB
+
+### Dual Channel vs Single Channel
+
+**Single Channel** (1 módulo)
+- Ejemplo: 1x 16GB
+- Más económico
+- Menor rendimiento
+
+**Dual Channel** (2 módulos iguales)
+- Ejemplo: 2x 8GB = 16GB
+- 10-30% más rendimiento
+- Recomendado siempre que sea posible
+- Requiere: 2 slots libres + módulos idénticos (misma velocidad y capacidad)
+
+### Configuraciones Comunes
+
+**8GB Total**
+- Opción 1: 1x 8GB (permite expandir a 16GB después)
+- Opción 2: 2x 4GB (mejor rendimiento, no expandible si solo hay 2 slots)
+
+**16GB Total**
+- Opción 1: 1x 16GB (permite expandir a 32GB)
+- Opción 2: 2x 8GB (mejor rendimiento, recomendado)
+
+**32GB Total**
+- Opción 1: 2x 16GB (recomendado)
+- Opción 2: 1x 32GB (solo si planeas llegar a 64GB)
+
+## Velocidad de RAM
+
+### ¿Importa la Velocidad?
+
+**Para Uso General**: Diferencia mínima (2-5%)
+- 2400 MHz vs 3200 MHz: Casi imperceptible
+
+**Para Gaming**: Diferencia moderada (5-15%)
+- Ryzen se beneficia más de RAM rápida
+- Intel menos sensible
+
+**Para Edición/Renderizado**: Diferencia notable (10-20%)
+- Más velocidad = mejor rendimiento
+
+### Mixing de Velocidades
+
+**¿Puedo mezclar RAM de diferentes velocidades?**
+Sí, pero:
+- Todas funcionarán a la velocidad del módulo más lento
+- Ejemplo: 2400 MHz + 3200 MHz = ambas a 2400 MHz
+- Recomendado: Usar módulos idénticos
+
+## Marcas Recomendadas
+
+### Alta Gama
+- **Corsair**: Vengeance, Dominator
+- **G.Skill**: Ripjaws, Trident
+- **Kingston**: HyperX, Fury
+- **Crucial**: Ballistix
+
+### Gama Media (Mejor relación precio/rendimiento)
+- **Crucial**: Standard
+- **Kingston**: ValueRAM, Fury
+- **Corsair**: Vengeance
+- **ADATA**: Premier
+
+### Económicas (Confiables)
+- **Kingston**: ValueRAM
+- **Crucial**: Standard
+- **Samsung**: OEM
+- **Micron**: OEM
+
+## Instalación
+
+### Pasos para Instalar/Reemplazar RAM
+
+1. **Apagar completamente** el notebook
+2. **Desconectar cargador** y batería (si es removible)
+3. **Descargar electricidad estática**: Tocar superficie metálica
+4. **Abrir compartimento de RAM**:
+   - Algunos notebooks: Panel de acceso en la base
+   - Otros: Requiere quitar tapa trasera completa
+5. **Liberar clips laterales** que sostienen el módulo
+6. **Módulo se levantará** en ángulo de ~30°
+7. **Extraer módulo viejo** tirando suavemente
+8. **Insertar módulo nuevo** en ángulo de 30° hasta que encaje
+9. **Presionar hacia abajo** hasta que los clips laterales cierren
+10. **Cerrar compartimento** y encender
+
+### RAM Soldada (No Reemplazable)
+
+Algunos notebooks ultradelgados tienen RAM soldada:
+- **MacBook Air/Pro** (2016+)
+- **Dell XPS 13** (algunos modelos)
+- **HP Spectre** (algunos modelos)
+- **Lenovo Yoga** (algunos modelos)
+
+**Identificar**: 
+- Si solo hay 1 slot visible, el resto puede estar soldado
+- Consultar especificaciones del modelo
+
+## Verificación Post-Instalación
+
+### En Windows
+
+1. **Verificar cantidad total**:
+   - Click derecho en "Este equipo" → Propiedades
+   - Debe mostrar la RAM total instalada
+
+2. **Verificar velocidad y dual channel**:
+   - Descargar CPU-Z
+   - Pestaña "Memory": Ver frecuencia y canal
+
+3. **Test de estabilidad**:
+   - MemTest86 (booteable)
+   - Windows Memory Diagnostic
+   - Ejecutar por 1-2 horas
+
+### Problemas Comunes
+
+**RAM no detectada**
+- Verificar que esté bien insertada (escuchar clic)
+- Limpiar contactos con goma de borrar
+- Probar en otro slot
+
+**Sistema inestable/pantallazos azules**
+- RAM defectuosa o incompatible
+- Ejecutar MemTest86
+- Probar módulos uno por uno
+
+**Velocidad incorrecta**
+- Activar XMP/DOCP en BIOS
+- Actualizar BIOS a última versión
+
+## Optimización
+
+### Activar XMP/DOCP (Para RAM de alta velocidad)
+
+1. Entrar a BIOS (F2, F10, Del según marca)
+2. Buscar "XMP" (Intel) o "DOCP" (AMD)
+3. Activar perfil
+4. Guardar y reiniciar
+
+### Liberar RAM en Windows
+
+1. **Cerrar programas en segundo plano**
+2. **Deshabilitar inicio automático**: Task Manager → Inicio
+3. **Ajustar memoria virtual**: 
+   - Panel de Control → Sistema → Configuración avanzada
+   - Rendimiento → Configuración → Opciones avanzadas
+   - Memoria virtual: Dejar que Windows administre
+
+## Preguntas Frecuentes
+
+**¿Puedo mezclar marcas de RAM?**
+Sí, pero recomendado usar misma velocidad y capacidad.
+
+**¿Más RAM hace más rápido el notebook?**
+Solo si te estabas quedando sin RAM. Si ya tienes suficiente, no notarás diferencia.
+
+**¿4GB son suficientes en 2026?**
+Para uso muy básico sí, pero 8GB es el mínimo recomendado.
+
+**¿DDR4 3200 MHz funciona en notebook que soporta 2666 MHz?**
+Sí, pero funcionará a 2666 MHz (velocidad del chipset).
+
+**¿Puedo poner 32GB si mi notebook dice "máximo 16GB"?**
+A veces sí (límite de especificación, no técnico). Probar bajo tu riesgo.
+
+**¿La RAM usada es confiable?**
+Sí, la RAM raramente falla. Verificar con MemTest86 antes de comprar.
+
+## Garantía BIT Comunicaciones
+
+- **RAM nueva**: 6 meses de garantía
+- **RAM usada**: 3 meses de garantía
+- **Instalación incluida**: Sin costo adicional
+- **Test de estabilidad**: Verificamos funcionamiento antes de entregar
+- **Asesoramiento**: Verificamos compatibilidad con tu modelo específico

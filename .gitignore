@@ -1,0 +1,34 @@
+# .gitignore — Archivos que NO van al repositorio de GitHub
+
+# Variables de entorno (NUNCA subir credenciales)
+.env
+.env_fixed
+
+# Sesión de Instagram (se genera automáticamente)
+brain/instagram_session.json
+
+# Cache de Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Imágenes temporales generadas
+temp_publish_*.png
+debug_output.png
+test_image.png
+test_upload.gif
+test_fb.jpg
+
+# Datos personales / sensibles
+brain/memory/
+brain/memory_openai/
+
+# Archivos de sistema Windows
+Thumbs.db
+desktop.ini
+
+# VS Code
+.vscode/
+
+# Editor Gemini
+.gemini/

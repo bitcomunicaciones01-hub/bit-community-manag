@@ -1,0 +1,233 @@
+# Discos SSD y HDD para Notebooks - Guía Técnica
+
+## Tipos de Almacenamiento
+
+### SSD (Solid State Drive)
+- **Tecnología**: Memoria flash NAND (sin partes móviles)
+- **Ventajas**: 
+  - 5-10x más rápido que HDD
+  - Resistente a golpes
+  - Silencioso
+  - Menor consumo energético
+  - Arranque de Windows en 10-20 segundos
+- **Desventajas**: 
+  - Mayor costo por GB
+  - Vida útil limitada por ciclos de escritura (aunque muy alta)
+
+### HDD (Hard Disk Drive)
+- **Tecnología**: Discos magnéticos giratorios
+- **Ventajas**:
+  - Menor costo por GB
+  - Mayor capacidad disponible (hasta 5TB en notebooks)
+  - Ideal para almacenamiento masivo
+- **Desventajas**:
+  - Más lento
+  - Sensible a golpes
+  - Mayor consumo energético
+  - Ruido mecánico
+
+### SSHD (Hybrid Drive)
+- Combinación de HDD + pequeña cache SSD (8-32GB)
+- Compromiso entre velocidad y capacidad
+- Menos común actualmente
+
+## Interfaces y Formatos
+
+### SATA (Serial ATA)
+- **SATA II**: 3 Gb/s (300 MB/s máx.)
+- **SATA III**: 6 Gb/s (550 MB/s máx.)
+- Formato: 2.5" (notebooks) o 3.5" (desktops)
+- Grosor: 7mm (estándar) o 9.5mm (notebooks antiguos)
+- Conector: Cable SATA de datos + alimentación
+
+### M.2 (NGFF)
+- **Formato**: Tarjeta pequeña (22mm ancho x 30/42/60/80mm largo)
+- **Tipos de socket**:
+  - **M.2 SATA**: Usa protocolo SATA (hasta 550 MB/s)
+  - **M.2 NVMe**: Usa protocolo PCIe (hasta 7000 MB/s en Gen4)
+- **Key (muesca)**:
+  - B Key: SATA
+  - M Key: NVMe
+  - B+M Key: Compatible con ambos
+- **Tamaños comunes**: 2242, 2260, 2280 (más común)
+
+### NVMe (Non-Volatile Memory Express)
+- Protocolo de comunicación para SSDs M.2
+- **Generaciones**:
+  - PCIe Gen 3: Hasta 3500 MB/s
+  - PCIe Gen 4: Hasta 7000 MB/s
+  - PCIe Gen 5: Hasta 14000 MB/s (muy nuevo)
+- Requiere slot M.2 con soporte NVMe
+
+### mSATA (Mini-SATA)
+- Formato antiguo (pre-M.2)
+- Usado en notebooks 2010-2015
+- Velocidad: Hasta 550 MB/s (SATA III)
+- Tamaño: Similar a M.2 pero conector diferente
+
+## Compatibilidad
+
+### Verificar Antes de Comprar
+
+**Para SSD/HDD SATA 2.5":**
+1. **Grosor**: 7mm o 9.5mm (medir disco actual)
+2. **Interfaz**: SATA II o SATA III (ambos compatibles)
+3. **Capacidad máxima soportada**: Consultar manual del notebook
+
+**Para SSD M.2:**
+1. **Tipo de slot**: SATA o NVMe (verificar en manual)
+2. **Longitud soportada**: 2242, 2260, 2280 (verificar espacio físico)
+3. **Key del conector**: B, M, o B+M
+4. **Generación PCIe**: Gen 3 o Gen 4 (Gen 4 es retrocompatible con Gen 3)
+
+### Compatibilidad por Marca
+
+**HP**
+- Pavilion/ProBook (2015+): SATA 2.5" 7mm + M.2 (SATA o NVMe según modelo)
+- EliteBook: M.2 NVMe + SATA 2.5"
+- Omen/Gaming: M.2 NVMe Gen 3/4
+
+**Lenovo**
+- ThinkPad (2016+): M.2 NVMe + SATA 2.5"
+- IdeaPad: M.2 SATA o NVMe según modelo
+- Legion: M.2 NVMe Gen 3/4
+
+**Dell**
+- Inspiron: SATA 2.5" + M.2 (variable)
+- Latitude: M.2 NVMe + SATA 2.5"
+- XPS: M.2 NVMe Gen 3/4 exclusivamente
+
+**Acer**
+- Aspire: SATA 2.5" + M.2 SATA/NVMe
+- Swift: M.2 NVMe soldado (no reemplazable en algunos modelos)
+- Predator/Nitro: M.2 NVMe Gen 3/4
+
+**Asus**
+- VivoBook: M.2 SATA o NVMe + SATA 2.5"
+- ZenBook: M.2 NVMe
+- ROG/TUF: M.2 NVMe Gen 3/4 + SATA 2.5"
+
+## Capacidades Recomendadas
+
+### Uso Básico (Ofimática, Web)
+- **Mínimo**: 128GB SSD
+- **Recomendado**: 256GB SSD
+- **Óptimo**: 512GB SSD
+
+### Uso Intermedio (Multimedia, Diseño Ligero)
+- **Mínimo**: 256GB SSD
+- **Recomendado**: 512GB SSD
+- **Óptimo**: 1TB SSD
+
+### Uso Intensivo (Gaming, Edición de Video)
+- **Mínimo**: 512GB SSD NVMe
+- **Recomendado**: 1TB SSD NVMe
+- **Óptimo**: 2TB SSD NVMe o 512GB SSD + 1TB HDD
+
+### Almacenamiento Masivo
+- **Opción 1**: 2TB HDD (económico)
+- **Opción 2**: 1TB SSD + HDD externo
+- **Opción 3**: 2TB SSD (más caro pero mejor rendimiento)
+
+## Marcas Recomendadas
+
+### SSD de Alta Gama
+- **Samsung**: 970 EVO Plus, 980 PRO (NVMe)
+- **Western Digital**: WD Black SN850
+- **Crucial**: P5 Plus
+- **Kingston**: KC3000
+
+### SSD Gama Media (Mejor relación precio/rendimiento)
+- **Crucial**: MX500 (SATA), P3 (NVMe)
+- **Western Digital**: WD Blue SN570
+- **Kingston**: A2000, NV2
+- **Samsung**: 870 EVO (SATA)
+
+### SSD Económicos
+- **Kingston**: A400 (SATA)
+- **WD Green**: SATA
+- **Crucial**: BX500
+- **Gigabyte**: SSD básicos
+
+### HDD para Notebooks
+- **Western Digital**: WD Blue (5400 RPM)
+- **Seagate**: BarraCuda (5400 RPM)
+- **Toshiba**: MQ series
+
+## Instalación
+
+### Reemplazo de Disco SATA 2.5"
+
+1. **Backup de datos**: Clonar disco con software (Macrium Reflect, Clonezilla)
+2. **Apagar y desconectar** notebook
+3. **Abrir compartimento de disco** (generalmente en base)
+4. **Desatornillar caddy/bracket** que sostiene el disco
+5. **Desconectar cable SATA** con cuidado
+6. **Extraer disco viejo** del bracket
+7. **Montar disco nuevo** en bracket con tornillos
+8. **Reconectar cable SATA** y cerrar compartimento
+9. **Encender y verificar** detección en BIOS
+
+### Instalación de SSD M.2
+
+1. **Backup de datos** (si es reemplazo)
+2. **Apagar y desconectar** notebook
+3. **Abrir tapa trasera** (puede requerir quitar varios tornillos)
+4. **Localizar slot M.2** (generalmente cerca del procesador)
+5. **Desatornillar tornillo de retención** (si hay disco previo)
+6. **Insertar SSD M.2** en ángulo de 30° hasta que encaje
+7. **Presionar hacia abajo** y atornillar
+8. **Cerrar tapa** y encender
+9. **Inicializar disco** en Windows (Administración de discos)
+
+## Clonado vs Instalación Limpia
+
+### Clonado de Disco
+- **Ventajas**: Mantiene Windows, programas y archivos
+- **Software**: Macrium Reflect Free, Samsung Data Migration, Acronis
+- **Tiempo**: 1-3 horas según tamaño
+- **Recomendado para**: Reemplazo directo
+
+### Instalación Limpia de Windows
+- **Ventajas**: Sistema más rápido y limpio
+- **Requiere**: USB booteable con Windows, licencia
+- **Tiempo**: 30-60 minutos + reinstalación de programas
+- **Recomendado para**: Notebooks con problemas de rendimiento
+
+## Optimización Post-Instalación
+
+### Para SSD
+1. **Verificar TRIM activado**: `fsutil behavior query DisableDeleteNotify` (debe ser 0)
+2. **Deshabilitar desfragmentación**: Windows 10/11 lo hace automáticamente
+3. **Activar AHCI en BIOS**: Mejora rendimiento
+4. **Actualizar firmware**: Usar software del fabricante
+
+### Para HDD
+1. **Desfragmentar regularmente**: Cada 1-2 meses
+2. **Verificar errores**: `chkdsk /f` cada 3 meses
+3. **Mantener 15-20% libre**: Mejora rendimiento
+
+## Preguntas Frecuentes
+
+**¿Puedo poner un SSD más rápido que el que soporta mi notebook?**
+Sí, será retrocompatible pero limitado a la velocidad del slot.
+
+**¿Cuánto mejora el rendimiento al cambiar de HDD a SSD?**
+Arranque: 60s → 15s | Apertura de programas: 3-5x más rápido | Copia de archivos: 5-10x más rápido
+
+**¿Necesito reinstalar Windows al cambiar de disco?**
+No si clonas el disco. Sí si quieres instalación limpia (recomendado).
+
+**¿Puedo tener SSD + HDD al mismo tiempo?**
+Sí, muchos notebooks tienen slot M.2 + bahía SATA 2.5". SSD para sistema, HDD para archivos.
+
+**¿Qué es mejor: SSD SATA o NVMe?**
+NVMe es más rápido (3-7x) pero SATA es suficiente para uso general. NVMe vale la pena para gaming/edición.
+
+## Garantía BIT Comunicaciones
+
+- **SSDs nuevos**: 6 meses de garantía
+- **HDDs nuevos**: 6 meses de garantía
+- **Instalación + clonado**: Incluido sin costo
+- **Asesoramiento**: Verificamos compatibilidad antes de comprar
+- **Servicio técnico**: Instalación profesional con herramientas antiestáticas

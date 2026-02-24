@@ -1,0 +1,43 @@
+# Archivos del sistema que no van al servidor
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Variables de entorno locales (se configuran en Railway)
+.env
+.env_fixed
+
+# Archivos de sesión de Instagram (se generan automáticamente en el servidor)
+brain/instagram_session.json
+
+# Imágenes temporales generadas en local
+temp_publish_*.png
+debug_output.png
+test_*.png
+test_*.jpg
+test_*.gif
+
+# Archivos de debug y test
+debug_*.py
+inspect_*.py
+test_*.py
+verify_*.py
+find_ig_id.py
+
+# Datos de usuario persistentes (se configuran volúmenes en Railway)
+brain/drafts/*.json
+brain/archive/
+brain/errors/
+brain/memory/
+brain/memory_openai/
+
+# Archivos de desarrollo
+*.bat
+*.md
+.git/
+.gitignore

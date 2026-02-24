@@ -1,0 +1,125 @@
+# Baterías de Notebooks - Guía Técnica
+
+## Tipos de Baterías
+
+### Baterías de Ion de Litio (Li-Ion)
+- Tecnología más común en notebooks modernos
+- Ventajas: Alta densidad energética, sin efecto memoria
+- Vida útil: 300-500 ciclos de carga completos
+- Voltaje típico: 10.8V, 11.1V, 14.4V, 14.8V
+
+### Baterías de Polímero de Litio (Li-Po)
+- Más delgadas y ligeras que Li-Ion
+- Usadas en ultrabooks y laptops premium
+- Mayor costo pero mejor rendimiento
+- Voltaje típico: 7.4V, 11.1V, 14.8V
+
+## Compatibilidad
+
+### Verificar Antes de Comprar
+1. **Modelo exacto del notebook**: Ej. HP Pavilion 15-ab123la
+2. **Part Number de la batería original**: Ej. 807957-001, HSTNN-LB6U
+3. **Voltaje (V)**: Debe coincidir exactamente
+4. **Capacidad (mAh o Wh)**: Puede variar ±10%
+5. **Número de celdas**: 3, 4, 6, 9 celdas
+
+### Compatibilidad por Marca
+
+**HP**
+- Familias: Pavilion, ProBook, EliteBook, Envy, Omen
+- Part Numbers comunes: HSTNN-xxxx, 807xxx-xxx
+- Voltajes: 10.8V, 11.1V, 14.4V, 14.8V
+
+**Lenovo**
+- Familias: ThinkPad, IdeaPad, Legion
+- Part Numbers comunes: L15M2PB5, L16C2PB2, 45N1xxx
+- Voltajes: 7.4V, 10.8V, 11.1V, 15.2V
+
+**Dell**
+- Familias: Inspiron, Latitude, XPS, Vostro
+- Part Numbers comunes: 0JV6J, 6GTPY, 33YDH
+- Voltajes: 11.1V, 11.4V, 14.8V
+
+**Acer**
+- Familias: Aspire, Swift, Predator, Nitro
+- Part Numbers comunes: AS16A5K, AS16B8J, AC14B18J
+- Voltajes: 10.8V, 11.1V, 14.8V, 15.2V
+
+**Asus**
+- Familias: VivoBook, ZenBook, ROG, TUF
+- Part Numbers comunes: A32-K55, C21N1347, B31N1535
+- Voltajes: 10.8V, 11.1V, 11.4V, 15.2V
+
+## Original vs Compatible
+
+### Baterías Originales
+- Fabricadas por el mismo fabricante del notebook
+- Garantía completa del fabricante
+- Mayor costo (50-100% más caras)
+- Mejor control de calidad
+- Duración: 2-3 años de uso normal
+
+### Baterías Compatibles/Genéricas
+- Fabricadas por terceros (marcas: Green Cell, Patona, Cameron Sino)
+- Menor costo (30-50% más baratas)
+- Calidad variable según fabricante
+- Pueden tener menor vida útil
+- Importante: Verificar certificaciones (CE, RoHS)
+
+## Consejos de Uso y Mantenimiento
+
+### Maximizar Vida Útil
+1. **No dejar descargar completamente**: Mantener entre 20-80% de carga
+2. **Evitar calor excesivo**: No usar sobre superficies blandas que bloqueen ventilación
+3. **Calibrar cada 2-3 meses**: Descarga completa + carga completa
+4. **Almacenamiento**: Si no se usa por >1 mes, guardar con 50% de carga
+5. **Actualizar BIOS**: Mejora gestión de energía
+
+### Señales de Batería Deteriorada
+- Duración menor a 1 hora con carga completa
+- Se descarga rápidamente sin uso
+- Se hincha o deforma (¡PELIGRO! Reemplazar inmediatamente)
+- El sistema no reconoce la batería
+- Calentamiento excesivo durante carga
+
+## Instalación
+
+### Pasos para Reemplazo
+1. **Apagar completamente** el notebook (no suspender)
+2. **Desconectar cargador** y todos los periféricos
+3. **Descargar electricidad estática**: Tocar superficie metálica
+4. **Ubicar compartimento de batería**: Generalmente en la base
+5. **Deslizar pestillos** de liberación
+6. **Extraer batería vieja** con cuidado
+7. **Insertar batería nueva** hasta escuchar clic
+8. **Cargar completamente** antes del primer uso (4-6 horas)
+
+### Baterías Internas (No Removibles)
+- Requieren desarmar el notebook
+- Desconectar batería antes de manipular componentes
+- Usar herramientas antiestáticas
+- Recomendado: Instalación por técnico
+
+## Preguntas Frecuentes
+
+**¿Puedo usar una batería de mayor capacidad (mAh)?**
+Sí, siempre que el voltaje sea idéntico. Mayor capacidad = mayor autonomía.
+
+**¿Qué significa "6 celdas"?**
+Cantidad de celdas internas. Más celdas = mayor capacidad y duración.
+
+**¿Debo quitar la batería si uso siempre con cargador?**
+No es necesario en notebooks modernos (tienen gestión inteligente de carga).
+
+**¿Cuánto dura una batería nueva?**
+Depende del uso: 2-4 horas (gaming), 4-8 horas (ofimática), 8-12 horas (ultrabooks).
+
+**¿La batería genérica daña mi notebook?**
+No, si es de buena calidad y tiene las especificaciones correctas.
+
+## Garantía BIT Comunicaciones
+
+- **Baterías originales**: 6 meses de garantía
+- **Baterías compatibles**: 3 meses de garantía
+- **Instalación incluida**: Sin costo adicional
+- **Asesoramiento técnico**: Verificamos compatibilidad antes de la compra

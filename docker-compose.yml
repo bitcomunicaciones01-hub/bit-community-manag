@@ -1,0 +1,16 @@
+services:
+  bit-manager:
+    build: .
+    container_name: bit_community_manager
+    restart: always
+    ports:
+      - "8501:8501"
+    volumes:
+      # Map the 'brain' folder to persist drafts, memory, and logs
+      - ./brain:/app/brain
+      # Map the .env file to manage secrets easily on the host
+      - ./.env:/app/.env
+      # OPTIONAL: Map nodes folder for hot-reloading code without rebuild (for dev)
+      # - ./nodes:/app/nodes
+    environment:
+      - TZ=America/Argentina/Buenos_Aires

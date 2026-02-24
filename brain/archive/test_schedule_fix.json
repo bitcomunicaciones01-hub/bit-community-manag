@@ -1,0 +1,18 @@
+{
+  "id": "test_schedule_fix",
+  "approval_status": "approved",
+  "publish_time_iso": "2026-02-24T10:49:59.589774",
+  "selected_product": {
+    "id": 99999,
+    "name": "Test Product Fix",
+    "images": [
+      "https://picsum.photos/500/500"
+    ]
+  },
+  "draft_caption": "Test caption for native scheduling fix #BITComunicaciones",
+  "preferred_format": "image",
+  "design_settings": {
+    "show_logo": false,
+    "remove_bg": false
+  }
+}

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FUTURA RADIO 2099 - AI COMMAND CENTER</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="scanlines"></div>
+    <div class="glow-overlay"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="logo">
+                <span class="icon">📡</span> FUTURA RADIO <span class="year">2099</span>
+            </div>
+            <div class="status-panel">
+                <div class="status-item"><span class="label">SYSTEM:</span> <span class="value online">ONLINE</span></div>
+                <div class="status-item"><span class="label">AI CORE:</span> <span class="value online">GPT-5-MINI</span></div>
+                <div class="status-item"><span class="label">MEMORY:</span> <span class="value warning">BYPASSED</span></div>
+            </div>
+        </header>
+
+        <!-- Main Grid -->
+        <main class="grid">
+            
+            <!-- Column 1: Control & Terminal -->
+            <section class="panel control-panel">
+                <h2><span class="glitch" data-text="OPERATIONS">OPERATIONS</span></h2>
+                
+                <button id="runBtn" class="cyber-btn">
+                    <span class="btn-content">INITIALIZE WORKFLOW</span>
+                    <span class="glitch-effect"></span>
+                </button>
+
+                <div class="terminal-window">
+                    <div class="terminal-header">_SYSTEM_LOGS.EXE</div>
+                    <div class="terminal-body" id="logs">
+                        <div class="log-line">System ready... Waiting for command.</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Column 2: Live Preview -->
+            <section class="panel preview-panel">
+                <h2><span class="glitch" data-text="LIVE_TRANSMISSION">LIVE_TRANSMISSION</span></h2>
+                
+                <div class="content-preview hidden" id="resultContainer">
+                    <div class="image-frame">
+                        <img id="resultImage" src="" alt="Generated Visual">
+                        <div class="frame-corner c-tl"></div>
+                        <div class="frame-corner c-tr"></div>
+                        <div class="frame-corner c-bl"></div>
+                        <div class="frame-corner c-br"></div>
+                    </div>
+                    
+                    <div class="caption-box">
+                        <h3>CAPTION_DATA</h3>
+                        <p id="resultCaption">No data.</p>
+                    </div>
+
+                    <div class="stats-box">
+                        <div class="stat">
+                            <span class="s-label">CRITIQUE</span>
+                            <span class="s-value" id="resultCritique">--</span>
+                        </div>
+                        <div class="stat">
+                            <span class="s-label">RESEARCH</span>
+                            <span class="s-value" id="resultResearch">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="placeholder-loader" id="loader">
+                    <div class="spinner"></div>
+                    <p>PROCESSING DATA STREAM...</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
