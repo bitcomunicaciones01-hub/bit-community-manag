@@ -16,3 +16,4 @@ instagrapi
 woocommerce
 pillow
 sentence-transformers
+streamlit

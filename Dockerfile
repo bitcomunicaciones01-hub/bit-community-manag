@@ -33,4 +33,4 @@ EXPOSE 8501
 
 # Run the application
 # We run main.py which starts the scheduler, and it also launches Streamlit as a subprocess
-CMD ["python", "main.py"]
+CMD ["python", "main_server.py"]
