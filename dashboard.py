@@ -109,9 +109,10 @@ def refine_post(current_caption, user_instruction, product_data={}, weekly_theme
     except:
         return {"caption": current_caption}
 
-# Create drafts dir
+# Create required directories
+for d in ["./brain/drafts", "./brain/previews", "./brain/reels", "./brand_assets"]:
+    os.makedirs(d, exist_ok=True)
 draft_dir = "./brain/drafts"
-os.makedirs(draft_dir, exist_ok=True)
 
 # Helper functions for callbacks
 def select_draft(filepath):

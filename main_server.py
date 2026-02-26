@@ -13,6 +13,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Inicializar carpetas necesarias (evita Errno 2 en el servidor)
+for directory in ["brain/drafts", "brain/previews", "brain/reels", "brain/archive", "brand_assets"]:
+    os.makedirs(directory, exist_ok=True)
+    print(f"[OK] Directorio verificado: {directory}")
+
 # Forzar encoding UTF-8 en el servidor
 os.environ["PYTHONIOENCODING"] = "utf-8"
 os.environ["DASHBOARD_MODE"] = "true"
