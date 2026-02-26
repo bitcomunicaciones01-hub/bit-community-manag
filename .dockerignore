@@ -19,21 +19,26 @@ session_b64.txt
 # Sesión de Instagram
 brain/instagram_session.json
 
-# MULTIMEDIA PESADA (Excluimos lo que no sea brand)
+# MULTIMEDIA PESADA (Excluimos solo lo dinámico/temporal)
 brain/reels/
 brain/previews/
 brain/captions/
-brain/archive/
 brain/errors/
-brain/memory/
 brain/memory_openai/
 
-# Excluir imágenes temporales de la raíz
+# IMPORTANTE: NO ignoramos brain/archive/ porque es la MEMORIA de lo publicado
+# IMPORTANTE: NO ignoramos brain/memory/ porque es la base vectorial ChromaDB
+
+# Excluir imágenes temporales de la raíz que se generan en local
 temp_publish_*.png
 debug_*.png
 test_*.png
 test_*.jpg
 test_*.gif
+video_*.mp4
+
+# NO ignoramos *.png o *.jpg globalmente para no perder BRAND_ASSETS y TEMPLATES
+# Pero sí ignoramos videos pesados
 *.mp4
 *.MOV
 *.avi
@@ -49,4 +54,5 @@ scripts/
 run_*.bat
 *.md
 
-# NOTA: NO ignoramos brand_assets/ porque ahí está el robot y el logo
+# Los activos de marca son esenciales
+# brand_assets/ DEBE subirse

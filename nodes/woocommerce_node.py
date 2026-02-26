@@ -131,8 +131,38 @@ def woocommerce_intake(state):
         if not available_products:
             return {"status": "error", "selected_product": None}
             
+        # --- FILTER PUBLISHED PRODUCTS ---
+        published_ids = set()
+        archive_dir = os.path.join("brain", "archive")
+        if os.path.exists(archive_dir):
+            import glob
+            for arch_file in glob.glob(os.path.join(archive_dir, "*.json")):
+                try:
+                    with open(arch_file, "r", encoding="utf-8") as f:
+                        arch_data = json.load(f)
+                        p_id = arch_data.get("selected_product", {}).get("id")
+                        if p_id: published_ids.add(str(p_id))
+                except: continue
+        
+        # Also check current drafts
+        draft_dir = os.path.join("brain", "drafts")
+        if os.path.exists(draft_dir):
+            for draft_file in glob.glob(os.path.join(draft_dir, "*.json")):
+                try:
+                    with open(draft_file, "r", encoding="utf-8") as f:
+                        d_data = json.load(f)
+                        p_id = d_data.get("selected_product", {}).get("id")
+                        if p_id: published_ids.add(str(p_id))
+                except: continue
+
+        final_pool = [p for p in available_products if str(p['id']) not in published_ids]
+        
+        if not final_pool:
+            print("⚠️ All available products already published. Resetting filter.")
+            final_pool = available_products
+
         # 4. Final Selection
-        selected_product = random.choice(available_products)
+        selected_product = random.choice(final_pool)
         
         # Inject Post Type into product dict so Copywriter knows
         selected_product["post_type"] = post_type
