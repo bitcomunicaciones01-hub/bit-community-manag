@@ -68,38 +68,65 @@ def get_instagram_client():
 def login_with_session():
     """
     Intenta login usando sesión guardada, o crea nueva sesión.
-    Esto evita logins repetidos que pueden ser detectados.
+    - En Railway: lee la sesion desde la variable INSTAGRAM_SESSION_B64
+    - En local: usa el archivo brain/instagram_session.json
     """
+    import base64
+    import json as _json
+
     client = get_instagram_client()
-    
+
+    # ANTI-DETECCIÓN: pequeño delay antes de cada login
+    time.sleep(random.uniform(1, 3))
+
     try:
-        # Intentar cargar sesión existente
-        if os.path.exists(SESSION_FILE):
-            logger.info("Cargando sesión guardada...")
-            client.load_settings(SESSION_FILE)
+        # --- MODO SERVIDOR (Railway): sesion desde variable de entorno ---
+        session_b64 = os.getenv("INSTAGRAM_SESSION_B64")
+        if session_b64:
+            logger.info("Cargando sesion desde variable de entorno (modo servidor)...")
+            session_data = _json.loads(base64.b64decode(session_b64).decode())
+            # Escribir temporalmente para que load_settings pueda leerlo
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp:
+                _json.dump(session_data, tmp)
+                tmp_path = tmp.name
+            client.load_settings(tmp_path)
+            os.unlink(tmp_path)
             client.login(USERNAME, PASSWORD)
-            
-            # Verificar que la sesión sigue válida
             try:
                 client.get_timeline_feed()
-                logger.info("[OK] Sesión válida reutilizada")
+                logger.info("[OK] Sesion de servidor valida")
                 return client
             except LoginRequired:
-                logger.warning("Sesión expirada, creando nueva...")
+                logger.warning("Sesion de servidor expirada, intentando login directo...")
+                client2 = get_instagram_client()
+                client2.login(USERNAME, PASSWORD)
+                logger.info("[OK] Login directo exitoso")
+                return client2
+
+        # --- MODO LOCAL: archivo de sesion ---
+        if os.path.exists(SESSION_FILE):
+            logger.info("Cargando sesion guardada...")
+            client.load_settings(SESSION_FILE)
+            client.login(USERNAME, PASSWORD)
+
+            try:
+                client.get_timeline_feed()
+                logger.info("[OK] Sesion valida reutilizada")
+                return client
+            except LoginRequired:
+                logger.warning("Sesion expirada, creando nueva...")
                 os.remove(SESSION_FILE)
-        
+
         # Login nuevo
-        logger.info("Creando nueva sesión...")
+        logger.info("Creando nueva sesion...")
         client.login(USERNAME, PASSWORD)
-        
-        # Guardar sesión para próximos usos
         client.dump_settings(SESSION_FILE)
-        logger.info("[OK] Nueva sesión creada y guardada")
-        
+        logger.info("[OK] Nueva sesion creada y guardada")
         return client
-        
+
     except ChallengeRequired as e:
-        logger.error(f"[ERROR] Instagram requiere verificación (Challenge). Por favor, inicia sesión manualmente en Instagram desde tu navegador.")
+        logger.error("[ERROR] Instagram requiere verificacion. Ejecuta tools/interactive_login.py localmente.")
         logger.error(f"Detalles: {e}")
         return None
     except Exception as e:
