@@ -9,9 +9,6 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # Install system dependencies
-# ffmpeg: for video processing (TikTok/Reels)
-# libsm6, libxext6: for OpenCV (if used by any image lib)
-# git: sometimes needed for pip install from git
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     libsm6 \
@@ -22,15 +19,18 @@ RUN apt-get update && apt-get install -y \
 # Copy the requirements file into the container
 COPY requirements.txt .
 
-# Install any needed packages specified in requirements.txt
+# Install PyTorch CPU-only FIRST (much smaller than GPU version)
+# This prevents sentence-transformers from pulling the 2GB GPU version
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+
+# Install remaining dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the current directory contents into the container at /app
 COPY . .
 
-# Expose port 8501 for Streamlit Dashboard
+# Expose port for Streamlit Dashboard
 EXPOSE 8501
 
-# Run the application
-# We run main.py which starts the scheduler, and it also launches Streamlit as a subprocess
+# Run the server application
 CMD ["python", "main_server.py"]
