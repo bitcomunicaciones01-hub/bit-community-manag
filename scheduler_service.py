@@ -4,16 +4,21 @@ import os
 import json
 import glob
 import sys
+import pytz
 from datetime import datetime
 from dotenv import load_dotenv
 
 # Import publisher logic
-# We need to reuse the publisher node logic, but isolated
 from instagram_client import publish_instagram_post, publish_instagram_reel, get_instagram_client
 from tiktok_client import publish_tiktok_video
-from generate_image import generate_product_image
 
 load_dotenv()
+
+# Zona horaria Argentina
+AR_TZ = pytz.timezone("America/Argentina/Buenos_Aires")
+
+def get_now_ar():
+    return datetime.now(AR_TZ)
 
 # Config
 DRAFT_DIR = "./brain/drafts"
@@ -23,9 +28,14 @@ os.makedirs(ARCHIVE_DIR, exist_ok=True)
 os.makedirs(ERROR_DIR, exist_ok=True)
 
 def job_publish_pending():
-    print(f"\n[Scheduler] Checking for approved posts at {datetime.now()}...")
+    now_ar = get_now_ar()
+    print(f"\n[Scheduler] Checking for approved posts at {now_ar.strftime('%Y-%m-%d %H:%M:%S')} (AR)...")
     
     # Find all approved drafts
+    if not os.path.exists(DRAFT_DIR):
+        print(f"[Scheduler] Draft directory {DRAFT_DIR} not found.")
+        return
+
     files = glob.glob(os.path.join(DRAFT_DIR, "*.json"))
     approved_files = []
     
@@ -39,10 +49,14 @@ def job_publish_pending():
                     publish_time_iso = data.get("publish_time_iso")
                     if publish_time_iso:
                         try:
+                            # Parse as naive and then localize to AR (assuming user meant AR time)
                             scheduled_dt = datetime.fromisoformat(publish_time_iso)
-                            if datetime.now() < scheduled_dt:
-                                # SKIP future posts, wait for their time to come
-                                print(f"[Scheduler] FUTURE: {os.path.basename(f)} scheduled for {scheduled_dt}. Waiting.")
+                            if scheduled_dt.tzinfo is None:
+                                scheduled_dt = AR_TZ.localize(scheduled_dt)
+                            
+                            if now_ar < scheduled_dt:
+                                # SKIP future posts
+                                print(f"[Scheduler]   WAIT: {os.path.basename(f)} for {scheduled_dt.strftime('%H:%M')} (Faltan: {scheduled_dt - now_ar})")
                                 continue
                         except ValueError:
                             pass
@@ -50,7 +64,7 @@ def job_publish_pending():
                     approved_files.append((f, data))
                     
         except Exception as e:
-            print(f"Error reading {f}: {e}")
+            print(f"[Scheduler]   Error reading {f}: {e}")
             
     # Sort candidates: prioritize those with a publish_time_iso (scheduled) 
     # and then by the scheduled time itself.
@@ -71,25 +85,24 @@ def job_publish_pending():
 
     # Pick the first one (most urgent/oldest scheduled)
     file_path, draft = approved_files[0]
-    print(f"[Scheduler] Found {len(approved_files)} approved drafts. Processing most urgent: {os.path.basename(file_path)}")
-    print(f"[Scheduler]   Scheduled Time: {draft.get('publish_time_iso', 'ASAP')}")
-    print(f"[Scheduler]   Current Time:   {datetime.now().isoformat()}")
+    print(f"[Scheduler] Found {len(approved_files)} approved drafts. Processing: {os.path.basename(file_path)}")
+    print(f"[Scheduler]   Scheduled: {draft.get('publish_time_iso', 'ASAP')}")
+    print(f"[Scheduler]   Current AR: {now_ar.strftime('%Y-%m-%d %H:%M:%S')}")
     
     try:
         # 1. Generate Image (Use Image Composer now)
         product = draft.get("selected_product", {})
         caption = draft.get("draft_caption", "")
-        # FIX: Retrieve design settings
         design = draft.get("design_settings", {})
         did = draft.get("id", "unknown")
         
         print("   Composing branded image...")
-        image_path = f"temp_publish_{datetime.now().strftime('%H%M%S')}.png"
+        image_path = f"temp_publish_{now_ar.strftime('%H%M%S')}.png"
         
         try:
             from image_composer import create_social_post
             
-            # Check for custom image override (same logic as dashboard)
+            # Check for custom image override
             custom_img_path = os.path.join(DRAFT_DIR, f"custom_img_{did}.png")
             if not os.path.exists(custom_img_path): custom_img_path = None
 
@@ -101,7 +114,7 @@ def job_publish_pending():
                 design_settings=design
             )
         except Exception as e:
-            print(f"   WARNING: Composition failed: {e}. Using product image fallback.")
+            print(f"   WARNING: Composition failed: {e}. Fallback to product image.")
             final_image_path = None 
             if product.get("images"):
                 final_image_path = product["images"][0]
@@ -110,18 +123,15 @@ def job_publish_pending():
         pref_fmt = draft.get("preferred_format", "image")
         reel_path = draft.get("reel_path")
         
-        # NUEVO: Extraer fecha para programación nativa
-        publish_time_iso = draft.get("publish_time_iso")
-        scheduled_dt = None
-        if publish_time_iso:
+        # 3. Double check time (Safety)
+        if draft.get("publish_time_iso"):
             try:
-                scheduled_dt = datetime.fromisoformat(publish_time_iso)
-                if scheduled_dt > datetime.now():
-                    print(f"   FUTURE: Scheduled for {scheduled_dt}. Skipping for now...")
+                s_dt = datetime.fromisoformat(draft["publish_time_iso"])
+                if s_dt.tzinfo is None: s_dt = AR_TZ.localize(s_dt)
+                if now_ar < s_dt:
+                    print(f"   [Safety] Still future: {s_dt}. Aborting.")
                     return
-                scheduled_dt = None # Es hora de publicar
-            except:
-                pass
+            except: pass
 
         res = None
         if pref_fmt == "tiktok" and reel_path and os.path.exists(reel_path):
