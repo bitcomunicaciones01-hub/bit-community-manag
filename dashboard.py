@@ -227,6 +227,9 @@ if selected_file:
         "product_x_offset": 0
     })
 
+    # Define current caption for scope
+    current_caption_val = draft.get("draft_caption", "")
+    
     st.title("🛠️ Editor de Publicación")
 
     # Status Banner
@@ -401,10 +404,10 @@ if selected_file:
             def text_editor_fragment():
                 st.markdown("### Editor de Texto")
                 current_caption = draft.get("draft_caption", "")
-                new_caption = st.text_area("Caption de Instagram", value=current_caption, height=250, key=editor_key)
+                st.text_area("Caption de Instagram", value=current_caption, height=250, key=editor_key)
                 
                 if st.button("💾 Guardar Cambios Manuales", use_container_width=True, key=f"save_manual_{did}"):
-                    draft["draft_caption"] = new_caption
+                    draft["draft_caption"] = st.session_state[editor_key]
                     with open(selected_file, "w", encoding="utf-8") as f:
                         json.dump(draft, f, indent=2, ensure_ascii=False)
                     st.success("¡Texto guardado!")
@@ -435,7 +438,8 @@ if selected_file:
             if st.button("🚀 Generar Reel Animado", use_container_width=True, key=f"gen_reel_{did}"):
                 with st.status("🎬 Generando video (150 frames)...", expanded=True) as v_status:
                     try:
-                        from video_composer import create_reel_video
+                        from gemini_client import client as gemini
+                        import asyncio
                         import time
                         
                         # Remove OLD one if exists to keep clean
@@ -455,7 +459,33 @@ if selected_file:
                         # Ensure design settings include the full caption for the video engine
                         design["full_caption"] = draft.get("draft_caption", "")
                         
-                        v_res = create_reel_video(product, v_output, override_image_path=custom_img, design_settings=design)
+                        # Preparamos las imágenes y el prompt para Gemini
+                        img_to_upload = []
+                        if custom_img and os.path.exists(custom_img):
+                            img_to_upload.append(custom_img)
+                        else:
+                            # Intentar bajar la imagen del producto si no es local
+                            from PIL import Image
+                            import requests
+                            import io
+                            imgs = product.get("images", [])
+                            if imgs:
+                                try:
+                                    resp = requests.get(imgs[0], timeout=10)
+                                    p_img_path = os.path.join("brain", "temp_product_img.jpg")
+                                    with open(p_img_path, "wb") as f:
+                                        f.write(resp.content)
+                                    img_to_upload.append(p_img_path)
+                                except: pass
+                        
+                        prompt_video = f"""Crea un video corporativo de alto impacto para este producto: {product.get('name', 'Producto')}. 
+                        Usa las fotos adjuntas y el modelo Nano Banana. 
+                        Mensaje a destacar: {current_caption_val}
+                        Estilo: Profesional, dinámico, ideal para redes sociales. 
+                        Tema semanal: {st.session_state.get('weekly_theme', '')}"""
+                        
+                        # Llamada asíncrona a Gemini
+                        v_res = asyncio.run(gemini.generate_video(img_to_upload, prompt_video, output_dir="brain/reels"))
                         
                         if v_res:
                             # Verify normalization of path for Windows
@@ -577,7 +607,7 @@ if selected_file:
                 
                 # 2. Save Caption
                 with open(base_path + ".txt", "w", encoding="utf-8") as tf:
-                    tf.write(new_caption)
+                    tf.write(current_caption_val)
                 
                 # 3. Save Reel (Video) if exists
                 reel_path = draft.get("reel_path")

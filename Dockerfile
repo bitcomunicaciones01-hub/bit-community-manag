@@ -16,6 +16,9 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
+# Install playwright system dependencies
+RUN pip install playwright && playwright install-deps chromium && playwright install chromium
+
 # Copy the requirements file into the container
 COPY requirements.txt .
 
