@@ -436,7 +436,7 @@ if selected_file:
                 st.warning("No hay un Reel generado para este borrador.")
 
             if st.button("🚀 Generar Reel Animado", use_container_width=True, key=f"gen_reel_{did}"):
-                with st.status("🎬 Generando video (150 frames)...", expanded=True) as v_status:
+                with st.status("🎬 Generando video con Gemini (Nano Banana)...", expanded=True) as v_status:
                     try:
                         from gemini_client import client as gemini
                         import asyncio
@@ -489,14 +489,20 @@ if selected_file:
                         
                         if v_res:
                             # Verify normalization of path for Windows
-                            v_res_norm = os.path.normpath(v_res)
-                            draft["reel_path"] = v_res_norm
+                            res_normalized = os.path.normpath(v_res)
+                            v_status.update(label="✅ Video generado con éxito", state="complete")
+                            st.session_state[f"reel_path_{did}"] = res_normalized
+                            draft["reel_path"] = res_normalized
                             with open(selected_file, "w", encoding="utf-8") as f:
                                 json.dump(draft, f, indent=2, ensure_ascii=False)
-                            v_status.update(label="✅ Video generado con éxito!", state="complete")
                             st.rerun()
                         else:
-                            v_status.error("Fallo al generar frames.")
+                            if not os.path.exists("brain/gemini_session.json"):
+                                msg = "❌ Error: No se encontró la sesión de Gemini. Por favor, ejecuta 'python tools/gemini_login.py' en tu PC primero."
+                            else:
+                                msg = "❌ Gemini no pudo generar el video. Verificá tu conexión o si Gemini cambió la interfaz."
+                            v_status.error(msg)
+                            st.error(msg)
                     except Exception as ve:
                         v_status.error(f"Error: {ve}")
 
