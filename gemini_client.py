@@ -84,34 +84,54 @@ class GeminiClient:
                     'button[aria-label="Cerrar"]',
                     'button:has-text("Entendido")',
                     'button:has-text("Aceptar todo")',
-                    '.dismiss-button'
+                    'button:has-text("Probar")', # Banner de Nano Banana 2
+                    '.dismiss-button',
+                    '[aria-label="Cerrar"]'
                 ]
                 for ov in overlays:
                     try:
                         btn = page.locator(ov).first
                         if await btn.is_visible():
+                            logger.info(f"Cerrando overlay encontrado: {ov}")
                             await btn.click()
-                            await page.wait_for_timeout(500)
+                            await page.wait_for_timeout(1000)
                     except: pass
 
                 # 1. Subir material (Imágenes)
                 # El input[type=file] suele estar oculto pero presente
                 file_input = page.locator('input[type="file"]').first
-                if await file_input.count() > 0:
-                    try:
-                        # Convert paths to absolute for the container
-                        abs_paths = [os.path.abspath(p) for p in image_paths if os.path.exists(p)]
-                        if abs_paths:
+                
+                # VERIFICACIÓN DE IMÁGENES
+                abs_paths = []
+                for p in image_paths:
+                    ap = os.path.abspath(p)
+                    exists = os.path.exists(ap)
+                    logger.info(f"Verificando imagen: {ap} -> {'EXISTE' if exists else 'NO EXISTE'}")
+                    if exists:
+                        abs_paths.append(ap)
+                
+                if abs_paths:
+                    if await file_input.count() > 0:
+                        try:
                             logger.info(f"Subiendo {len(abs_paths)} imágenes a Gemini...")
                             await file_input.set_input_files(abs_paths)
-                            await page.wait_for_timeout(3000) # Esperar carga de miniaturas
-                            logger.info("Imágenes subidas correctamente.")
-                        else:
-                            logger.warning(f"No se encontraron las rutas de imágenes: {image_paths}")
-                    except Exception as fe:
-                        logger.error(f"Error subiendo imágenes: {fe}")
+                            await page.wait_for_timeout(4000) # Más tiempo para carga
+                            logger.info("Intento de subida completado.")
+                        except Exception as fe:
+                            logger.error(f"Error técnico subiendo imágenes: {fe}")
+                    else:
+                        logger.warning("No se encontró input[type=file]. Intentando forzar con el botón '+'...")
+                        plus_btn = page.locator('button[aria-label*="Subir"], button[aria-label*="Más"], .add-button').first
+                        if await plus_btn.is_visible():
+                            await plus_btn.click()
+                            await page.wait_for_timeout(1000)
+                            # Re-intentar encontrar el input tras el click
+                            file_input = page.locator('input[type="file"]').first
+                            if await file_input.count() > 0:
+                                await file_input.set_input_files(abs_paths)
+                                logger.info("Subida forzada tras click en '+' completada.")
                 else:
-                    logger.warning("No se encontró el input de archivos.")
+                    logger.error(f"No hay imágenes válidas para subir. Originales: {image_paths}")
 
                 # 2. Seleccionar Herramienta de Video (Opcional)
                 # En Gemini Plus a veces hay "chips". Si no los vemos, vamos directo al prompt.
