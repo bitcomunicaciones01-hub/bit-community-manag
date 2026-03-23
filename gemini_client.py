@@ -90,20 +90,34 @@ class GeminiClient:
                     logger.warning("No se encontró el input de archivos.")
 
                 # 2. Seleccionar Herramienta de Video si está disponible
-                # El usuario mostró un botón "Crear un vídeo" o "Herramientas"
-                create_video_btn = page.locator('button:has-text("Crear un vídeo")').first
-                if await create_video_btn.is_visible():
-                    logger.info("Activando herramienta 'Crear un vídeo'...")
-                    await create_video_btn.click()
-                else:
-                    # Intentar via menú herramientas
-                    tools_btn = page.locator('button:has-text("Herramientas")').first
-                    if await tools_btn.is_visible():
-                        await tools_btn.click()
+                # Gemini Plus / Nuevas versiones muestran "chips" o botones con texto
+                logger.info("Buscando herramienta de video...")
+                
+                # Intentamos varios selectores comunes
+                video_selectors = [
+                    'button:has-text("Crear un vídeo")',
+                    'button:has-text("Crear vídeo")',
+                    'div[role="button"]:has-text("Crear un vídeo")',
+                    'button:has-text("Video")',
+                    '.chip-button:has-text("Crear")'
+                ]
+                
+                found_v_tool = False
+                for sel in video_selectors:
+                    btn = page.locator(sel).first
+                    if await btn.is_visible():
+                        logger.info(f"Herramienta encontrada con: {sel}")
+                        await btn.click()
+                        found_v_tool = True
+                        await page.wait_for_timeout(2000)
+                        break
+                
+                if not found_v_tool:
+                    logger.warning("No se encontró botón directo, intentando via menú 'Herramientas' o '+'")
+                    plus_btn = page.locator('button[aria-label="Subir material"], button[aria-label="Más"]').first
+                    if await plus_btn.is_visible():
+                        await plus_btn.click()
                         await page.wait_for_timeout(1000)
-                        video_tool = page.locator('button:has-text("Crear vídeo")').first
-                        if await video_tool.is_visible():
-                            await video_tool.click()
 
                 # 3. Ingresar la orden
                 # El área de texto suele ser un div contenteditable o textarea
