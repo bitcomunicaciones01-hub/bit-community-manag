@@ -497,17 +497,23 @@ if selected_file:
                                 json.dump(draft, f, indent=2, ensure_ascii=False)
                             st.rerun()
                         else:
-                            # Detectamos si estamos en Railway (via variable de entorno con contenido)
+                            # Diagnóstico ampliado de Railway
                             from gemini_client import client as gem_inst
                             session_env = os.getenv("GEMINI_SESSION_B64")
+                            # Comprobar si existe cualquier variable que empiece con GEMINI_ (sin revelar el valor completo)
+                            gem_vars = [k for k in os.environ.keys() if k.startswith("GEMINI_")]
                             is_railway = session_env is not None and len(session_env.strip()) > 0
+                            
                             if not is_railway and not os.path.exists(gem_inst.session_path):
-                                msg = f"❌ Error: No se encontró la sesión local en {gem_inst.session_path}. Corré tools/gemini_login.py primero."
+                                msg = f"❌ Error: Sesión no encontrada.\n"
+                                msg += f"- Archivo local: {gem_inst.session_path} (No existe)\n"
+                                msg += f"- Variable ENV GEMINI_SESSION_B64: {'✅ OK' if is_railway else '❌ No detectada'}\n"
+                                msg += f"- Otras variables Gemini encontradas: {gem_vars if gem_vars else 'Ninguna'}"
                             else:
                                 if is_railway:
-                                    msg = "❌ Gemini no pudo generar el video en Railway. Verificá si la variable GEMINI_SESSION_B64 es correcta o si se venció la sesión."
+                                    msg = "❌ Gemini no pudo generar el video. Verificá si la sesión en Railway se venció (el código B64 es viejo) o si el prompt es inválido."
                                 else:
-                                    msg = "❌ Gemini no pudo generar el video. Verificá tu conexión o si Gemini cambió la interfaz."
+                                    msg = "❌ Gemini no pudo generar el video localmente. Verificá tu conexión o si Gemini cambió la interfaz."
                             v_status.error(msg)
                             st.error(msg)
                     except Exception as ve:
