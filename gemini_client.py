@@ -71,11 +71,29 @@ class GeminiClient:
                 logger.error(f"Sesión no encontrada en {self.session_path}. Ejecuta tools/gemini_login.py")
                 return None
             page = await context.new_page()
+            # Fijar un tamaño de ventana estándar
+            await page.set_viewport_size({"width": 1280, "height": 800})
             
             try:
                 logger.info(f"Navegando a {self.url}...")
-                await page.goto(self.url, wait_until="networkidle")
+                await page.goto(self.url, wait_until="networkidle", timeout=60000)
                 
+                # Cerrar posibles popups o avisos de cookies/novedades
+                logger.info("Limpiando posibles overlays o popups...")
+                overlays = [
+                    'button[aria-label="Cerrar"]',
+                    'button:has-text("Entendido")',
+                    'button:has-text("Aceptar todo")',
+                    '.dismiss-button'
+                ]
+                for ov in overlays:
+                    try:
+                        btn = page.locator(ov).first
+                        if await btn.is_visible():
+                            await btn.click()
+                            await page.wait_for_timeout(500)
+                    except: pass
+
                 # 1. Subir material (Imágenes)
                 # El input[type=file] suele estar oculto pero presente
                 file_input = page.locator('input[type="file"]').first
