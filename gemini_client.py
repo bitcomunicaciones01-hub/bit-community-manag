@@ -31,15 +31,23 @@ class GeminiClient:
             launch_args = {}
             launch_args["headless"] = True if is_railway else False
             
-            if not is_railway:
-                launch_args["channel"] = "chrome"
-                launch_args["args"] = ["--disable-blink-features=AutomationControlled"]
+            # Argumentos para evadir detección de bots en Railway
+            user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+            
+            launch_args["args"] = [
+                "--disable-blink-features=AutomationControlled",
+                "--no-sandbox",
+                "--disable-setuid-sandbox",
+                f"--user-agent={user_agent}"
+            ]
             
             try:
+                logger.info("Lanzando navegador Chromium...")
                 browser = await p.chromium.launch(**launch_args)
-            except:
-                # Fallback si chrome no está localizado
-                browser = await p.chromium.launch(headless=True)
+            except Exception as le:
+                logger.error(f"Fallo al lanzar Chromium: {le}")
+                # Fallback extremo
+                browser = await p.chromium.launch(headless=True, args=["--no-sandbox"])
             
             # Load session
             session_b64 = os.getenv("GEMINI_SESSION_B64")

@@ -511,11 +511,18 @@ if selected_file:
                                 msg += f"- Otras variables Gemini encontradas: {gem_vars if gem_vars else 'Ninguna'}"
                             else:
                                 if is_railway:
-                                    msg = "❌ Gemini no pudo generar el video. Verificá si la sesión en Railway se venció (el código B64 es viejo) o si el prompt es inválido."
+                                    msg = "❌ Gemini no pudo generar el video en Railway. Verificá si la sesión se venció o si Google pide verificar identidad."
                                 else:
                                     msg = "❌ Gemini no pudo generar el video localmente. Verificá tu conexión o si Gemini cambió la interfaz."
                             v_status.error(msg)
                             st.error(msg)
+                            
+                            # Mostrar screenshot de error si existe
+                            err_screenshot = "brain/gemini_error.png"
+                            if os.path.exists(err_screenshot):
+                                st.image(err_screenshot, caption="Captura del error en Gemini")
+                            elif os.path.exists("brain/gemini_crash.png"):
+                                st.image("brain/gemini_crash.png", caption="Captura del crash en Gemini")
                     except Exception as ve:
                         v_status.error(f"Error: {ve}")
 
