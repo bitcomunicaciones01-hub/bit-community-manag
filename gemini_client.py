@@ -24,8 +24,9 @@ class GeminiClient:
         os.makedirs(output_dir, exist_ok=True)
         
         async with async_playwright() as p:
-            # Detectamos si estamos en Railway (via variable de entorno)
-            is_railway = os.getenv("GEMINI_SESSION_B64") is not None
+            # Detectamos si estamos en Railway (via variable de entorno con contenido)
+            session_env = os.getenv("GEMINI_SESSION_B64")
+            is_railway = session_env is not None and len(session_env.strip()) > 0
             
             launch_args = {}
             launch_args["headless"] = True if is_railway else False

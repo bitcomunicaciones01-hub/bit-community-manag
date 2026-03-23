@@ -497,8 +497,10 @@ if selected_file:
                                 json.dump(draft, f, indent=2, ensure_ascii=False)
                             st.rerun()
                         else:
+                            # Detectamos si estamos en Railway (via variable de entorno con contenido)
                             from gemini_client import client as gem_inst
-                            is_railway = os.getenv("GEMINI_SESSION_B64") is not None
+                            session_env = os.getenv("GEMINI_SESSION_B64")
+                            is_railway = session_env is not None and len(session_env.strip()) > 0
                             if not is_railway and not os.path.exists(gem_inst.session_path):
                                 msg = f"❌ Error: No se encontró la sesión local en {gem_inst.session_path}. Corré tools/gemini_login.py primero."
                             else:
