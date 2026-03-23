@@ -11,8 +11,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class GeminiClient:
-    def __init__(self, session_path="brain/gemini_session.json"):
-        self.session_path = session_path
+    def __init__(self, session_path=None):
+        # Configuración de rutas absolutas para robustez
+        ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+        self.session_path = session_path or os.path.join(ROOT_DIR, "brain", "gemini_session.json")
         self.url = "https://gemini.google.com/app"
 
     async def generate_video(self, image_paths, prompt_text, output_dir="brain/reels"):
@@ -25,9 +27,8 @@ class GeminiClient:
             # Detectamos si estamos en Railway (via variable de entorno)
             is_railway = os.getenv("GEMINI_SESSION_B64") is not None
             
-            launch_args = {
-                "headless": True if is_railway else False,
-            } # type: dict
+            launch_args = {}
+            launch_args["headless"] = True if is_railway else False
             
             if not is_railway:
                 launch_args["channel"] = "chrome"

@@ -497,8 +497,10 @@ if selected_file:
                                 json.dump(draft, f, indent=2, ensure_ascii=False)
                             st.rerun()
                         else:
-                            if not os.path.exists("brain/gemini_session.json"):
-                                msg = "❌ Error: No se encontró la sesión de Gemini. Por favor, ejecuta 'python tools/gemini_login.py' en tu PC primero."
+                            # Usamos la misma lógica de ruta que el cliente
+                            from gemini_client import client as gem_inst
+                            if not os.path.exists(gem_inst.session_path):
+                                msg = f"❌ Error: No se encontró la sesión en {gem_inst.session_path}. Corré tools/gemini_login.py"
                             else:
                                 msg = "❌ Gemini no pudo generar el video. Verificá tu conexión o si Gemini cambió la interfaz."
                             v_status.error(msg)

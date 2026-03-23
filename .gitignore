@@ -39,4 +39,5 @@ brain/previews/
 brain/reels/
 brain/temp_frames/
 brain/gemini_session.json
+brain/gemini_profile/
 *.mp4
