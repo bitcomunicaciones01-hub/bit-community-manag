@@ -22,9 +22,22 @@ class GeminiClient:
         os.makedirs(output_dir, exist_ok=True)
         
         async with async_playwright() as p:
-            # Headless false for debugging or if required for session stability, 
-            # but usually true for background tasks.
-            browser = await p.chromium.launch(headless=True)
+            # Detectamos si estamos en Railway (via variable de entorno)
+            is_railway = os.getenv("GEMINI_SESSION_B64") is not None
+            
+            launch_args = {
+                "headless": True if is_railway else False,
+            } # type: dict
+            
+            if not is_railway:
+                launch_args["channel"] = "chrome"
+                launch_args["args"] = ["--disable-blink-features=AutomationControlled"]
+            
+            try:
+                browser = await p.chromium.launch(**launch_args)
+            except:
+                # Fallback si chrome no está localizado
+                browser = await p.chromium.launch(headless=True)
             
             # Load session
             session_b64 = os.getenv("GEMINI_SESSION_B64")
