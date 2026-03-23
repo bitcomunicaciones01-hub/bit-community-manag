@@ -77,57 +77,72 @@ class GeminiClient:
                 await page.goto(self.url, wait_until="networkidle")
                 
                 # 1. Subir material (Imágenes)
-                # El input[type=file] suele estar oculto
-                file_input = page.locator('input[type="file"]')
+                # El input[type=file] suele estar oculto pero presente
+                file_input = page.locator('input[type="file"]').first
                 if await file_input.count() > 0:
-                    logger.info(f"Subiendo {len(image_paths)} imágenes...")
-                    # Convert paths to absolute
-                    abs_paths = [os.path.abspath(p) for p in image_paths if os.path.exists(p)]
-                    if abs_paths:
-                        await file_input.set_input_files(abs_paths)
-                        await page.wait_for_timeout(2000) # Wait for upload to process
+                    try:
+                        # Convert paths to absolute for the container
+                        abs_paths = [os.path.abspath(p) for p in image_paths if os.path.exists(p)]
+                        if abs_paths:
+                            logger.info(f"Subiendo {len(abs_paths)} imágenes a Gemini...")
+                            await file_input.set_input_files(abs_paths)
+                            await page.wait_for_timeout(3000) # Esperar carga de miniaturas
+                            logger.info("Imágenes subidas correctamente.")
+                        else:
+                            logger.warning(f"No se encontraron las rutas de imágenes: {image_paths}")
+                    except Exception as fe:
+                        logger.error(f"Error subiendo imágenes: {fe}")
                 else:
                     logger.warning("No se encontró el input de archivos.")
 
-                # 2. Seleccionar Herramienta de Video si está disponible
-                # Gemini Plus / Nuevas versiones muestran "chips" o botones con texto
-                logger.info("Buscando herramienta de video...")
-                
-                # Intentamos varios selectores comunes
+                # 2. Seleccionar Herramienta de Video (Opcional)
+                # En Gemini Plus a veces hay "chips". Si no los vemos, vamos directo al prompt.
+                logger.info("Buscando chips de herramientas (video)...")
                 video_selectors = [
                     'button:has-text("Crear un vídeo")',
-                    'button:has-text("Crear vídeo")',
                     'div[role="button"]:has-text("Crear un vídeo")',
-                    'button:has-text("Video")',
-                    '.chip-button:has-text("Crear")'
+                    'button:has-text("vídeo")'
                 ]
                 
-                found_v_tool = False
                 for sel in video_selectors:
                     btn = page.locator(sel).first
                     if await btn.is_visible():
-                        logger.info(f"Herramienta encontrada con: {sel}")
+                        logger.info(f"Clickeando chip: {sel}")
                         await btn.click()
-                        found_v_tool = True
                         await page.wait_for_timeout(2000)
                         break
-                
-                if not found_v_tool:
-                    logger.warning("No se encontró botón directo, intentando via menú 'Herramientas' o '+'")
-                    plus_btn = page.locator('button[aria-label="Subir material"], button[aria-label="Más"]').first
-                    if await plus_btn.is_visible():
-                        await plus_btn.click()
-                        await page.wait_for_timeout(1000)
 
-                # 3. Ingresar la orden
-                # El área de texto suele ser un div contenteditable o textarea
-                prompt_area = page.locator('div[contenteditable="true"]').first
-                if not await prompt_area.is_visible():
-                    prompt_area = page.locator('textarea').first
+                # 3. Ingresar la orden (Prompt)
+                logger.info(f"Ingresando el prompt: {prompt_text}")
+                prompt_selectors = [
+                    'div[contenteditable="true"]',
+                    '[aria-label="Pregunta a Gemini"]',
+                    'textarea'
+                ]
                 
-                logger.info(f"Enviando orden: {prompt_text}")
-                await prompt_area.fill(prompt_text)
+                prompt_found = False
+                for ps in prompt_selectors:
+                    p_area = page.locator(ps).first
+                    if await p_area.is_visible():
+                        logger.info(f"Prompt area encontrada con: {ps}")
+                        await p_area.click()
+                        await page.keyboard.type(prompt_text)
+                        prompt_found = True
+                        break
+                
+                if not prompt_found:
+                    logger.warning("No se detectó el prompt area, intentando vía Tab + Type...")
+                    await page.keyboard.press("Tab")
+                    await page.keyboard.type(prompt_text)
+
+                # 4. Enviar
+                logger.info("Enviando orden pulsando Enter...")
                 await page.keyboard.press("Enter")
+                
+                # Intentar click en botón de enviar si Enter no basta
+                send_btn = page.locator('button[aria-label="Enviar mensaje"], button:has-text("Enviar")').first
+                if await send_btn.is_enabled():
+                    await send_btn.click()
 
                 # 4. Esperar generación y descargar
                 # Este paso es tricky porque depende de cómo Gemini entrega el video.
