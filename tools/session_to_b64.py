@@ -12,16 +12,16 @@ def convert_to_b64():
         encoded = base64.b64encode(f.read()).decode()
         
     print("====================================================")
-    print("🚀 COPIA ESTE CÓDIGO PARA REILWAY")
+    print("COPIA ESTE CODIGO PARA RAILWAY")
     print("====================================================")
     print("\n")
     print(encoded)
     print("\n")
     print("====================================================")
-    print("1. Andá a tu proyecto en Railway.app.")
-    print("2. Andá a 'Variables'.")
-    print("3. Agregá una nueva: GEMINI_SESSION_B64")
-    print("4. Pegá el código de arriba en 'Value'.")
+    print("1. Anda a tu proyecto en Railway.app.")
+    print("2. Anda a 'Variables'.")
+    print("3. Agrega una nueva: GEMINI_SESSION_B64")
+    print("4. Pega el codigo de arriba en 'Value'.")
     print("====================================================")
 
 if __name__ == "__main__":

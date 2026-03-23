@@ -497,12 +497,15 @@ if selected_file:
                                 json.dump(draft, f, indent=2, ensure_ascii=False)
                             st.rerun()
                         else:
-                            # Usamos la misma lógica de ruta que el cliente
                             from gemini_client import client as gem_inst
-                            if not os.path.exists(gem_inst.session_path):
-                                msg = f"❌ Error: No se encontró la sesión en {gem_inst.session_path}. Corré tools/gemini_login.py"
+                            is_railway = os.getenv("GEMINI_SESSION_B64") is not None
+                            if not is_railway and not os.path.exists(gem_inst.session_path):
+                                msg = f"❌ Error: No se encontró la sesión local en {gem_inst.session_path}. Corré tools/gemini_login.py primero."
                             else:
-                                msg = "❌ Gemini no pudo generar el video. Verificá tu conexión o si Gemini cambió la interfaz."
+                                if is_railway:
+                                    msg = "❌ Gemini no pudo generar el video en Railway. Verificá si la variable GEMINI_SESSION_B64 es correcta o si se venció la sesión."
+                                else:
+                                    msg = "❌ Gemini no pudo generar el video. Verificá tu conexión o si Gemini cambió la interfaz."
                             v_status.error(msg)
                             st.error(msg)
                     except Exception as ve:
