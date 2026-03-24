@@ -85,6 +85,8 @@ class GeminiClient:
                     'button:has-text("Entendido")',
                     'button:has-text("Aceptar todo")',
                     'button:has-text("Probar")', # Banner de Nano Banana 2
+                    'button:has-text("No, gracias")', # Popup de Pizarra/Canvas
+                    'button:has-text("No gracias")',
                     '.dismiss-button',
                     '[aria-label="Cerrar"]'
                 ]
