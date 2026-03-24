@@ -101,90 +101,71 @@ class GeminiClient:
                 abs_paths = []
                 for p in image_paths:
                     ap = os.path.abspath(p)
-                    exists = os.path.exists(ap)
-                    logger.info(f"Verificando imagen en Railway: {ap} -> {'EXISTE' if exists else 'NO EXISTE'}")
-                    if exists:
+                    if os.path.exists(ap):
                         abs_paths.append(ap)
                 
                 if not abs_paths:
-                    logger.error(f"No hay imágenes válidas para subir. Originales: {image_paths}")
+                    logger.error(f"¡CRÍTICO! Ninguna imagen encontrada: {image_paths}")
                     return None
 
-                # Intentar subir
-                uploaded = False
+                logger.info(f"❤️ LATIDO: Empezando subida de {len(abs_paths)} fotos...")
                 
-                # Método A: Input directo
-                file_input = page.locator('input[type="file"]').first
-                if await file_input.count() > 0:
+                # INTENTO 1: Buscar CUALQUIER input de tipo file en toda la página
+                # A veces hay inputs ocultos que funcionan directamente sin abrir menús
+                inputs = await page.locator('input[type="file"]').all()
+                uploaded = False
+                for idx, inp in enumerate(inputs):
                     try:
-                        logger.info("Intentando subida via input[type=file]...")
-                        await file_input.set_input_files(abs_paths)
-                        await page.wait_for_timeout(4000)
+                        logger.info(f"Probando input file #{idx}...")
+                        await inp.set_input_files(abs_paths)
+                        await page.wait_for_timeout(3000)
                         uploaded = True
-                        logger.info("Subida via input completada.")
-                    except Exception as fe:
-                        logger.error(f"Fallo método A: {fe}")
+                        break
+                    except: pass
 
-                # Método B: Click en "+" y buscar opciones (Si el input directo falló)
+                # INTENTO 2: Click en '+' y buscar opciones (Si el input directo falló)
                 if not uploaded:
-                    logger.info("Intentando abrir menú '+' para subir archivos...")
-                    plus_selectors = [
-                        'button[aria-label="Añadir contenido"]',
-                        'button[aria-label*="Subir"]',
-                        'button[aria-label*="Más"]',
-                        '#chat-input-plus-button', # ID común
-                        'button:has(svg):near(div[contenteditable], 50)' # Botón con icono cerca del prompt
-                    ]
-                    
-                    for sel in plus_selectors:
-                        btn = page.locator(sel).first
-                        if await btn.is_visible():
-                            logger.info(f"Clickeando botón de subida: {sel}")
-                            await btn.click()
-                            await page.wait_for_timeout(1500)
-                            
-                            # Opción de subir archivos en el menú
-                            upload_option = page.locator('span:has-text("Subir archivos"), [aria-label*="Subir archivos"]').first
-                            if await upload_option.is_visible():
-                                logger.info("Click en 'Subir archivos' del menú...")
-                                async with page.expect_file_chooser() as fc_info:
-                                    await upload_option.click()
-                                file_chooser = await fc_info.value
-                                await file_chooser.set_files(abs_paths)
-                                uploaded = True
-                                logger.info("Subida via menú '+' exitosa.")
-                                break
-                            else:
-                                logger.warning("Menú '+' abierto pero no se encontró la opción de subir.")
-                                # Cerrar el menú si quedó abierto
-                                await page.keyboard.press("Escape")
-                                await page.wait_for_timeout(500)
+                    logger.info("❤️ LATIDO: Probando menú '+' (Plus)...")
+                    # Buscamos por icono o por label cercano al prompt
+                    btn_plus = page.locator('button:has(svg):left-of(button:has-text("Herramientas")), button[aria-label*="Añadir"], button[aria-label*="Más"]').first
+                    if await btn_plus.is_visible():
+                        await btn_plus.click(force=True)
+                        await page.wait_for_timeout(1500)
+                        # Opción de subir archivos
+                        opt = page.locator('span:has-text("Subir"), [aria-label*="Subir"]').first
+                        if await opt.is_visible():
+                            async with page.expect_file_chooser() as fc_info:
+                                await opt.click(force=True)
+                            file_chooser = await fc_info.value
+                            await file_chooser.set_files(abs_paths)
+                            uploaded = True
+                            logger.info("Subida via menú '+' completada.")
+                            await page.wait_for_timeout(2000)
+                        else:
+                            await page.keyboard.press("Escape")
 
-                # 2. Seleccionar Herramienta de Video (Opcional)
-                # Si vemos el botón de "Herramientas" (como en tu captura 816), lo usamos
-                logger.info("Buscando herramienta de video...")
-                tools_btn = page.locator('button:has-text("Herramientas"), button[aria-label*="Herramientas"]').first
-                if await tools_btn.is_visible():
-                    logger.info("Abriendo menú de Herramientas...")
-                    await tools_btn.click()
-                    await page.wait_for_timeout(1000)
-                    video_tool = page.locator('span:has-text("Videos"), span:has-text("Vídeos")').first
-                    if await video_tool.is_visible():
-                        logger.info("Seleccionando herramienta de Videos...")
-                        await video_tool.click()
-                        await page.wait_for_timeout(2000)
-                else:
-                    # Alternativa: chips de la home
-                    chips = ['button:has-text("Crear un vídeo")', 'div[role="button"]:has-text("vídeo")']
-                    for c in chips:
-                        btn = page.locator(c).first
-                        if await btn.is_visible():
-                            await btn.click()
+                # INTENTO 3: Herramientas (Videos)
+                logger.info("❤️ LATIDO: Buscando herramienta de Video...")
+                tools_selectors = [
+                    'button:has-text("Herramientas")',
+                    'button[aria-label*="Herramientas"]'
+                ]
+                for ts in tools_selectors:
+                    t_btn = page.locator(ts).first
+                    if await t_btn.is_visible():
+                        await t_btn.click(force=True)
+                        await page.wait_for_timeout(1000)
+                        v_tool = page.locator('span:has-text("Videos"), span:has-text("Vídeos")').first
+                        if await v_tool.is_visible():
+                            await v_tool.click(force=True)
+                            logger.info("Herramienta Video activada.")
                             await page.wait_for_timeout(2000)
                             break
+                        else:
+                            await page.keyboard.press("Escape")
 
                 # 3. Ingresar el prompt
-                logger.info(f"Ingresando prompt: {prompt_text}")
+                logger.info(f"❤️ LATIDO: Escribiendo prompt...")
                 prompt_selectors = [
                     'div[contenteditable="true"]',
                     '[aria-label*="Gemini"]',
@@ -192,37 +173,34 @@ class GeminiClient:
                     '.input-area'
                 ]
                 
-                prompt_found = False
+                text_target = None
                 for ps in prompt_selectors:
-                    p_area = page.locator(ps).first
-                    if await p_area.is_visible():
-                        logger.info(f"Escribiendo en área: {ps}")
-                        await p_area.click()
-                        await page.keyboard.press("Control+A") # Limpiar por si acaso
-                        await page.keyboard.press("Backspace")
-                        await page.keyboard.type(prompt_text, delay=60)
-                        prompt_found = True
+                    el = page.locator(ps).first
+                    if await el.is_visible():
+                        text_target = el
                         break
                 
-                if not prompt_found:
-                    logger.error("NO SE ENCONTRÓ ÁREA DE TEXTO. Tomando captura de diagnóstico...")
-                    await page.screenshot(path="brain/gemini_ui_error.png")
-                    # Listar botones para ver qué nombres usa hoy Google
-                    btns = await page.locator('button').all()
-                    for idx, b in enumerate(btns[:15]): # Solo los primeros 15
-                        l = await b.get_attribute('aria-label') or "Sin label"
-                        t = await b.inner_text() or "Sin texto"
-                        logger.info(f"Botón {idx}: {l} | {t}")
-
-                # 4. Enviar
-                logger.info("Enviando...")
-                await page.keyboard.press("Enter")
-                await page.wait_for_timeout(1000)
-                
-                # Click en el botón de enviar explícito si sigue ahí
-                send_btn = page.locator('button[aria-label*="Enviar"], .send-button').first
-                if await send_btn.is_enabled():
-                    await send_btn.click()
+                if text_target:
+                    await text_target.click(force=True)
+                    await page.wait_for_timeout(500)
+                    # Limpieza agresiva
+                    await page.keyboard.press("Control+A")
+                    await page.keyboard.press("Backspace")
+                    await page.keyboard.type(prompt_text, delay=40)
+                    await page.wait_for_timeout(1000)
+                    
+                    # 4. Enviar
+                    logger.info("❤️ LATIDO: Enviando orden...")
+                    await page.keyboard.press("Control+Enter") # Más directo para Gemini
+                    await page.wait_for_timeout(1500)
+                    
+                    # Fallback click
+                    send_btn = page.locator('button[aria-label*="Enviar"], .send-button').first
+                    if await send_btn.is_enabled():
+                        await send_btn.click(force=True)
+                else:
+                    logger.error("No se encontró área de texto para el prompt.")
+                    await page.screenshot(path="brain/gemini_no_text_area.png")
 
                 # 4. Esperar generación y descargar
                 # Este paso es tricky porque depende de cómo Gemini entrega el video.
