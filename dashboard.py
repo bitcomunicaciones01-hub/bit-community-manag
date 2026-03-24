@@ -1,4 +1,4 @@
-﻿import streamlit as st
+import streamlit as st
 import os
 import json
 import glob
@@ -648,12 +648,12 @@ if selected_file:
             st.rerun()
             
     with c2:
-         if st.button("ðŸ—‘ï¸ Descartar", width='stretch'):
+         if st.button("🗑️ Descartar", width='stretch'):
             os.remove(selected_file)
             st.rerun()
     
     with c3:
-        if st.button("ðŸš« Cancelar", width='stretch'):
+        if st.button("🚫 Cancelar", width='stretch'):
             # Just go back to "Simple" mode or clear selection if we had one
             # Streamlit rerun will handle resetting local UI state
             st.rerun()
