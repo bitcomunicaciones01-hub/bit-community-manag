@@ -76,9 +76,16 @@ class GeminiClient:
             
             try:
                 logger.info(f"Navegando a {self.url}...")
-                await page.goto(self.url, wait_until="networkidle", timeout=60000)
+                # No usamos networkidle porque en Railway puede tardar infinito por analytics/ads
+                await page.goto(self.url, wait_until="domcontentloaded", timeout=60000)
                 
-                # Cerrar posibles popups o avisos de cookies/novedades
+                # Esperamos a que aparezca el área principal
+                try:
+                    await page.wait_for_selector('div[contenteditable="true"], textarea', timeout=20000)
+                except:
+                    logger.warning("Timeout esperando selectores iniciales, procediendo igual...")
+
+                # Cerrar posibles popups o avisos
                 logger.info("Limpiando posibles overlays o popups...")
                 overlays = [
                     'button[aria-label="Cerrar"]',
@@ -129,9 +136,9 @@ class GeminiClient:
                 if not uploaded:
                     logger.info("❤️ LATIDO: Probando menú '+' (Plus)...")
                     # Buscamos por icono o por label cercano al prompt
-                    btn_plus = page.locator('button:has(svg):left-of(button:has-text("Herramientas")), button[aria-label*="Añadir"], button[aria-label*="Más"]').first
+                    btn_plus = page.locator('button:has(svg):left-of(div[contenteditable]), button[aria-label*="Añadir"], button[aria-label*="Más"]').first
                     if await btn_plus.is_visible():
-                        await btn_plus.click(force=True)
+                        await btn_plus.dispatch_event("click") # Evento de bajo nivel
                         await page.wait_for_timeout(1500)
                         # Opción de subir archivos
                         opt = page.locator('span:has-text("Subir"), [aria-label*="Subir"]').first
@@ -146,27 +153,9 @@ class GeminiClient:
                         else:
                             await page.keyboard.press("Escape")
 
-                # INTENTO 3: Herramientas (Videos)
-                logger.info("❤️ LATIDO: Buscando herramienta de Video...")
-                tools_selectors = [
-                    'button:has-text("Herramientas")',
-                    'button[aria-label*="Herramientas"]'
-                ]
-                for ts in tools_selectors:
-                    t_btn = page.locator(ts).first
-                    if await t_btn.is_visible():
-                        await t_btn.click(force=True)
-                        await page.wait_for_timeout(1000)
-                        v_tool = page.locator('span:has-text("Videos"), span:has-text("Vídeos")').first
-                        if await v_tool.is_visible():
-                            await v_tool.click(force=True)
-                            logger.info("Herramienta Video activada.")
-                            await page.wait_for_timeout(2000)
-                            break
-                        else:
-                            await page.keyboard.press("Escape")
-
                 # 3. Ingresar el prompt
+                # USAMOS EL "CHEAT CODE" DE GEMINI ADVANCED: @Videos
+                final_prompt = f"@Videos {prompt_text}" if "@" not in prompt_text else prompt_text
                 logger.info(f"❤️ LATIDO: Escribiendo prompt...")
                 prompt_selectors = [
                     'div[contenteditable="true"]',
@@ -183,12 +172,14 @@ class GeminiClient:
                         break
                 
                 if text_target:
+                    logger.info(f"Escribiendo prompt forzado en: {await text_target.evaluate('el => el.tagName')}")
                     await text_target.click(force=True)
                     await page.wait_for_timeout(500)
-                    # Limpieza agresiva
+                    # Limpieza agresiva y tipeo
                     await page.keyboard.press("Control+A")
                     await page.keyboard.press("Backspace")
-                    await page.keyboard.type(prompt_text, delay=40)
+                    await page.wait_for_timeout(3000) # Espera extra antes de escribir
+                    await page.keyboard.type(final_prompt, delay=60)
                     await page.wait_for_timeout(1000)
                     
                     # 4. Enviar
