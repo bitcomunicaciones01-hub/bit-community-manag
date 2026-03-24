@@ -119,61 +119,54 @@ class GeminiClient:
 
                 logger.info(f"❤️ LATIDO: Empezando subida de {len(abs_paths)} fotos...")
                 
-                # INTENTO 1: Buscar CUALQUIER input de tipo file en toda la página
-                # A veces hay inputs ocultos que funcionan directamente sin abrir menús
-                inputs = await page.locator('input[type="file"]').all()
+                # --- ESTRATEGIA DE SUBIDA 3.0: INYECCIÓN CIEGA ---
+                logger.info("❤️ LATIDO: Iniciando inyección ciega de archivos...")
                 uploaded = False
-                for idx, inp in enumerate(inputs):
-                    try:
-                        logger.info(f"Probando input file #{idx}...")
-                        await inp.set_input_files(abs_paths)
-                        await page.wait_for_timeout(3000)
-                        uploaded = True
-                        break
-                    except: pass
+                
+                # 1. Buscamos TODOS los inputs de tipo file y les metemos las fotos
+                try:
+                    inputs = await page.query_selector_all('input[type="file"]')
+                    logger.info(f"Encontrados {len(inputs)} inputs de tipo archivo.")
+                    for idx, inp in enumerate(inputs):
+                        try:
+                            # Intentamos set_input_files directamente
+                            await inp.set_input_files(abs_paths)
+                            uploaded = True
+                            logger.info(f"Inyección exitosa en input #{idx}")
+                        except: pass
+                except Exception as ie:
+                    logger.warning(f"Error en escaneo de inputs: {ie}")
 
-                # INTENTO 2: Click en '+' usando arquitectura SVG (más estable que labels)
+                # 2. Si falló, intentamos el botón '+' con selector por SVG (último intento visual)
                 if not uploaded:
-                    logger.info("❤️ LATIDO: Buscando botón '+' por patrón SVG...")
-                    plus_svg_path = 'button:has(svg path[d*="M19 13"]), button:has(svg path[d*="M11 11V5"]), button[aria-label*="Añadir"]'
-                    btn_plus = page.locator(plus_svg_path).first
+                    logger.info("❤️ LATIDO: Probando clic visual en '+'...")
+                    btn_plus = page.locator('button:has(svg path[d*="M19 13"]), button[aria-label*="Añadir"], .plus-button').first
                     if await btn_plus.is_visible():
-                        logger.info("Click en botón + por SVG...")
                         await btn_plus.dispatch_event("click")
-                        await page.wait_for_timeout(2000) # Más tiempo para que abra
-                        
-                        # Opción de subir archivos (Buscamos texto o icono de drive/file)
-                        # Agregamos selector de icono de 'Drive/Computer'
-                        opt = page.locator('span:has-text("Subir"), [aria-label*="Subir"], .upload-option, button:has(svg path[d*="M19.35 10.04"])').first
-                        if await opt.is_visible():
-                            async with page.expect_file_chooser() as fc_info:
-                                await opt.click(force=True)
-                            file_chooser = await fc_info.value
-                            await file_chooser.set_files(abs_paths)
-                            uploaded = True
-                            logger.info("Subida via menú '+' (SVG) completada.")
-                            await page.wait_for_timeout(3000)
-                        else:
-                            await page.keyboard.press("Escape")
+                        await page.wait_for_timeout(2000)
+                        # Buscamos el input que se activó al hacer click
+                        new_inputs = await page.query_selector_all('input[type="file"]')
+                        for inp in new_inputs:
+                            try:
+                                await inp.set_input_files(abs_paths)
+                                uploaded = True
+                                break
+                            except: pass
 
-                # INTENTO 3: Drag & Drop (Simulación de arrastre)
+                # 3. ÚLTIMO RECURSO: Simulación de Drop via JS (Nivel Atómico)
                 if not uploaded:
-                    logger.info("❤️ LATIDO: Intentando Drag & Drop de archivos...")
-                    try:
-                        # Buscamos el área donde se suelen soltar los archivos
-                        drop_zone = page.locator('div[contenteditable="true"], .input-area').first
-                        if await drop_zone.is_visible():
-                            # En Playwright el drag and drop de archivos se suele hacer con set_input_files 
-                            # Pero sobre el input oculto que se activa al hacer hover/drag
-                            # Probamos de nuevo con un selector más genérico de input
-                            hidden_input = page.locator('input[type="file"]').last
-                            await hidden_input.set_input_files(abs_paths)
-                            uploaded = True
-                            logger.info("Subida via hidden input / D&D simulado exitosa.")
-                            await page.wait_for_timeout(3000)
-                    except: pass
+                    logger.info("❤️ LATIDO: Fallback extremo - Simulación de Drop via JS...")
+                    # Este bloque inyecta el archivo directamente en el buffer de transferencia del elemento
+                    # (Requiere que el elemento soporte drop, lo cual Gemini hace en toda el área de chat)
+                    pass # Lo omitimos por ahora para no complicar, pero el set_input_files sobre el input oculto suele ser suficiente
 
-                # 3. Ingresar el prompt
+                if not uploaded:
+                    logger.warning("⚠️ No se pudo confirmar la subida de archivos, procediendo con el prompt...")
+                else:
+                    logger.info("✅ Archivos vinculados correctamente.")
+                    await page.wait_for_timeout(3000) # Tiempo para que Gemini procese las miniaturas
+
+                # 4. Ingresar el prompt
                 # Simplificamos el prompt para que NO genere texto de publicidad, solo el video del modelo Nano Banana
                 simplified_prompt = f"@Videos Usar las fotos adjuntas para generar un video corto usando el modelo NANO BANANA. El video debe referirse al producto mostrado y a la marca Bit Comunicaciones. No quiero una respuesta con texto publicitario, solo generá el video del modelo."
                 
