@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 import os
 import json
 import glob
@@ -13,7 +13,7 @@ load_dotenv()
 # Page Config
 st.set_page_config(
     page_title="BIT AI Community Manager",
-    page_icon="🤖",
+    page_icon="ðŸ¤–",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -55,11 +55,11 @@ def refine_post(current_caption, user_instruction, product_data={}, weekly_theme
     
     theme_inst = ""
     if weekly_theme:
-        theme_inst = f"Estamos en la semana de: '{weekly_theme}'. Si tiene sentido, alineá el cambio con este tema."
+        theme_inst = f"Estamos en la semana de: '{weekly_theme}'. Si tiene sentido, alineÃ¡ el cambio con este tema."
 
     prompt = ChatPromptTemplate.from_template("""
     Sos un **Redactor Senior y Especialista en Copywriting** para BIT Comunicaciones (Santa Fe).
-    Tu misión UNICA es procesar una ORDEN del usuario para mejorar el TEXTO (Caption) de un post.
+    Tu misiÃ³n UNICA es procesar una ORDEN del usuario para mejorar el TEXTO (Caption) de un post.
     
     {theme_inst}
     
@@ -68,7 +68,7 @@ def refine_post(current_caption, user_instruction, product_data={}, weekly_theme
     
     PRODUCTO (Para contexto):
     - Nombre: {p_name}
-    - Descripción: {p_desc}
+    - DescripciÃ³n: {p_desc}
     - Precio: ${p_price}
     
     ORDEN DEL USUARIO:
@@ -76,16 +76,16 @@ def refine_post(current_caption, user_instruction, product_data={}, weekly_theme
     
     REGLAS:
     1. Tu prioridad absoluta es REFINAR EL TEXTO del post.
-    2. Asegurá un tono profesional, amigable, persuasivo y con buena gramática.
-    3. NO menciones ni intentes cambiar el diseño visual (fotos, tamaños, posiciones). 
+    2. AsegurÃ¡ un tono profesional, amigable, persuasivo y con buena gramÃ¡tica.
+    3. NO menciones ni intentes cambiar el diseÃ±o visual (fotos, tamaÃ±os, posiciones). 
     4. Centrate solo en palabras, emojis y estructura del post.
     
-    5. Retorná SIEMPRE un JSON válido con esta estructura:
+    5. RetornÃ¡ SIEMPRE un JSON vÃ¡lido con esta estructura:
        {{
-         "caption": "texto corregido y mejorado aquí..."
+         "caption": "texto corregido y mejorado aquÃ­..."
        }}
 
-    SOLO respondé el JSON. Sin explicaciones.
+    SOLO respondÃ© el JSON. Sin explicaciones.
     """)
     
     chain = prompt | llm
@@ -122,25 +122,25 @@ def select_draft(filepath):
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/4712/4712109.png", width=80)
     st.title("BIT Manager")
-    st.caption("v1.0.0 • Local Mode")
+    st.caption("v1.0.0 â€¢ Local Mode")
 
     st.markdown("---")
     
     # 1. GENERATION BUTTON (Restored)
-    if st.button("✨ Generar Nuevo Post", use_container_width=True, type="primary"):
-        with st.status("🤖 Creando contenido...", expanded=True) as status:
+    if st.button("âœ¨ Generar Nuevo Post", width=" stretch\, type="primary"):
+        with st.status("ðŸ¤– Creando contenido...", expanded=True) as status:
             st.write("Analizando productos...")
             os.environ["DASHBOARD_MODE"] = "true"
             try:
                 from graph import app
                 app.invoke({"messages": [], "status": "start"})
-                status.update(label="¡Post generado!", state="complete", expanded=False)
+                status.update(label="Â¡Post generado!", state="complete", expanded=False)
                 st.rerun()
             except Exception as e:
                 st.error(f"Error: {e}")
 
     # --- SETTINGS SECTION ---
-    st.markdown("### ⚙️ Configuración")
+    st.markdown("### âš™ï¸ ConfiguraciÃ³n")
     settings_path = os.path.join("brain", "settings.json")
     if os.path.exists(settings_path):
         with open(settings_path, "r") as f:
@@ -158,7 +158,7 @@ with st.sidebar:
     st.markdown("---")
     
     # Template Uploader
-    with st.expander("🎨 Cargar Diseño (Fondo)"):
+    with st.expander("ðŸŽ¨ Cargar DiseÃ±o (Fondo)"):
         uploaded_template = st.file_uploader("Sube tu imagen (1080x1080)", type=["png", "jpg", "jpeg"])
         if uploaded_template:
             save_path = os.path.join("brand_assets", "template.png")
@@ -166,9 +166,9 @@ with st.sidebar:
                 os.makedirs("brand_assets")
             with open(save_path, "wb") as f:
                 f.write(uploaded_template.getbuffer())
-            st.success("¡Diseño actualizado!")
+            st.success("Â¡DiseÃ±o actualizado!")
     
-    st.markdown("### 📂 Posts Generados")
+    st.markdown("### ðŸ“‚ Posts Generados")
     # File selector
     draft_files = glob.glob(os.path.join(draft_dir, "*.json"))
     draft_files.sort(key=os.path.getmtime, reverse=True)
@@ -186,7 +186,7 @@ with st.sidebar:
                 product_name = data.get("selected_product", {}).get("name", "Producto")
                 timestamp = os.path.basename(filepath).split('_')[1]
                 hhmm = os.path.basename(filepath).split('_')[2][:4]
-                return f"📝 {timestamp[6:8]}/{timestamp[4:6]} {hhmm[:2]}:{hhmm[2:]} - {product_name[:20]}"
+                return f"ðŸ“ {timestamp[6:8]}/{timestamp[4:6]} {hhmm[:2]}:{hhmm[2:]} - {product_name[:20]}"
         except:
             return os.path.basename(filepath)
 
@@ -198,12 +198,12 @@ with st.sidebar:
             key="selected_file" 
         )
     else:
-        st.info("Hacé clic en 'Generar Nuevo Post' para empezar.")
+        st.info("HacÃ© clic en 'Generar Nuevo Post' para empezar.")
 
 # Main View
 if not draft_files:
-     st.title("👋 Bienvenido al BIT Manager")
-     st.info("No hay publicaciones generadas. Usá el botón 'Generar Nuevo Post' en el sidebar para empezar.")
+     st.title("ðŸ‘‹ Bienvenido al BIT Manager")
+     st.info("No hay publicaciones generadas. UsÃ¡ el botÃ³n 'Generar Nuevo Post' en el sidebar para empezar.")
      st.stop()
 
 # 1. Main Editor View
@@ -230,20 +230,20 @@ if selected_file:
     # Define current caption for scope
     current_caption_val = draft.get("draft_caption", "")
     
-    st.title("🛠️ Editor de Publicación")
+    st.title("ðŸ› ï¸ Editor de PublicaciÃ³n")
 
     # Status Banner
     status = draft.get("approval_status", "draft")
     if status == "approved":
-        st.success("✅ **APROBADO** | Programado para publicación automática.")
+        st.success("âœ… **APROBADO** | Programado para publicaciÃ³n automÃ¡tica.")
     else:
-        st.info("✏️ **BORRADOR** | Requiere revisión.")
+        st.info("âœï¸ **BORRADOR** | Requiere revisiÃ³n.")
 
     col1, col2 = st.columns([1, 1], gap="large")
 
     # --- Column 1: Live Preview (Fixed/Main) ---
     with col1:
-        st.subheader("📸 Vista Previa")
+        st.subheader("ðŸ“¸ Vista Previa")
         preview_placeholder = st.empty()
         
         try:
@@ -257,7 +257,7 @@ if selected_file:
             if not os.path.exists(custom_img_path): custom_img_path = None
 
             # Generate/Update preview
-            with st.spinner("Actualizando diseño..."):
+            with st.spinner("Actualizando diseÃ±o..."):
                 final_display_path = create_social_post(
                     product, 
                     default_preview,
@@ -270,13 +270,13 @@ if selected_file:
                 from PIL import Image
                 import time
                 display_img = Image.open(final_display_path)
-                preview_placeholder.image(display_img, use_container_width=True)
+                preview_placeholder.image(display_img, width=" stretch\)
             
             st.markdown(f"**{product.get('name', 'Producto')}**")
             st.caption(f"Precio: ${product.get('price', '0')}")
             
             st.markdown("---")
-            st.markdown("#### ⏰ Programación")
+            st.markdown("#### â° ProgramaciÃ³n")
             current_iso = draft.get("publish_time_iso")
             try:
                 dt = datetime.fromisoformat(current_iso) if current_iso else datetime.now()
@@ -292,14 +292,14 @@ if selected_file:
                 draft["publish_time_iso"] = new_dt.isoformat()
                 with open(selected_file, "w", encoding="utf-8") as f:
                     json.dump(draft, f, indent=2, ensure_ascii=False)
-                st.toast(f"Horario actualizado", icon="⏰")
+                st.toast(f"Horario actualizado", icon="â°")
 
         except Exception as e:
-            preview_placeholder.error(f"Error de diseño: {e}")
+            preview_placeholder.error(f"Error de diseÃ±o: {e}")
 
     # --- Column 2: Editor & Chat ---
     with col2:
-        tab_design, tab_text, tab_video = st.tabs(["🎨 Diseño", "✍️ Texto", "🎥 Video (Beta)"])
+        tab_design, tab_text, tab_video = st.tabs(["ðŸŽ¨ DiseÃ±o", "âœï¸ Texto", "ðŸŽ¥ Video (Beta)"])
         
         file_id = os.path.basename(selected_file).replace(".json", "")
         if f"version_{file_id}" not in st.session_state:
@@ -312,7 +312,7 @@ if selected_file:
             def design_editor_fragment():
                 st.markdown("### Ajustes Visuales")
                 # 1. Manual Title Override
-                new_img_title = st.text_input("Título en Imagen", value=design.get("title_override", ""), key=f"title_img_{did}")
+                new_img_title = st.text_input("TÃ­tulo en Imagen", value=design.get("title_override", ""), key=f"title_img_{did}")
                 if new_img_title != design.get("title_override"):
                     design["title_override"] = new_img_title
                     draft["design_settings"] = design
@@ -331,7 +331,7 @@ if selected_file:
                 # 3. Quick Toggles
                 ca, cb = st.columns(2)
                 with ca:
-                    rem_bg_val = st.checkbox("🪄 Quitar Fondo", value=design.get("remove_bg", False), key=f"rembg_chk_{did}")
+                    rem_bg_val = st.checkbox("ðŸª„ Quitar Fondo", value=design.get("remove_bg", False), key=f"rembg_chk_{did}")
                     if rem_bg_val != design.get("remove_bg", False):
                         design["remove_bg"] = rem_bg_val
                         draft["design_settings"] = design
@@ -347,7 +347,7 @@ if selected_file:
                             json.dump(draft, f, indent=2, ensure_ascii=False)
                         st.rerun()
 
-                    new_title_y = st.slider("Posición Título (Y)", -200, 200, int(design.get("title_y_offset", 0)), 10, key=f"ty_{did}")
+                    new_title_y = st.slider("PosiciÃ³n TÃ­tulo (Y)", -200, 200, int(design.get("title_y_offset", 0)), 10, key=f"ty_{did}")
                     if new_title_y != design.get("title_y_offset", 0):
                         design["title_y_offset"] = new_title_y
                         draft["design_settings"] = design
@@ -355,7 +355,7 @@ if selected_file:
                             json.dump(draft, f, indent=2, ensure_ascii=False)
                         st.rerun()
 
-                    new_title_scale = st.slider("Escala Título", 0.5, 2.0, float(design.get("title_scale", 1.0)), 0.1, key=f"tscale_{did}")
+                    new_title_scale = st.slider("Escala TÃ­tulo", 0.5, 2.0, float(design.get("title_scale", 1.0)), 0.1, key=f"tscale_{did}")
                     if new_title_scale != design.get("title_scale", 1.0):
                         design["title_scale"] = new_title_scale
                         draft["design_settings"] = design
@@ -365,7 +365,7 @@ if selected_file:
 
                 with cb:
                     limpieza_val = not design.get("show_logo", True)
-                    limpieza_on = st.checkbox("🤖 Limpieza Foto (y Mascota)", value=limpieza_val, key=f"logo_{did}")
+                    limpieza_on = st.checkbox("ðŸ¤– Limpieza Foto (y Mascota)", value=limpieza_val, key=f"logo_{did}")
                     if (not limpieza_on) != design.get("show_logo"):
                         design["show_logo"] = not limpieza_on
                         draft["design_settings"] = design
@@ -373,7 +373,7 @@ if selected_file:
                             json.dump(draft, f, indent=2, ensure_ascii=False)
                         st.rerun()
                     
-                    new_prod_y = st.slider("Posición Producto (Y)", -300, 300, int(design.get("product_y_offset", 0)), 10, key=f"py_{did}")
+                    new_prod_y = st.slider("PosiciÃ³n Producto (Y)", -300, 300, int(design.get("product_y_offset", 0)), 10, key=f"py_{did}")
                     if new_prod_y != design.get("product_y_offset", 0):
                         design["product_y_offset"] = new_prod_y
                         draft["design_settings"] = design
@@ -381,7 +381,7 @@ if selected_file:
                             json.dump(draft, f, indent=2, ensure_ascii=False)
                         st.rerun()
 
-                    new_prod_x = st.slider("Posición Producto (X)", -500, 500, int(design.get("product_x_offset", 0)), 10, key=f"px_{did}")
+                    new_prod_x = st.slider("PosiciÃ³n Producto (X)", -500, 500, int(design.get("product_x_offset", 0)), 10, key=f"px_{did}")
                     if new_prod_x != design.get("product_x_offset", 0):
                         design["product_x_offset"] = new_prod_x
                         draft["design_settings"] = design
@@ -389,7 +389,7 @@ if selected_file:
                             json.dump(draft, f, indent=2, ensure_ascii=False)
                         st.rerun()
                     
-                    show_footer = st.checkbox("📍 Mostrar Pie", value=design.get("show_footer", True), key=f"footer_{did}")
+                    show_footer = st.checkbox("ðŸ“ Mostrar Pie", value=design.get("show_footer", True), key=f"footer_{did}")
                     if show_footer != design.get("show_footer"):
                         design["show_footer"] = show_footer
                         draft["design_settings"] = design
@@ -406,37 +406,37 @@ if selected_file:
                 current_caption = draft.get("draft_caption", "")
                 st.text_area("Caption de Instagram", value=current_caption, height=250, key=editor_key)
                 
-                if st.button("💾 Guardar Cambios Manuales", use_container_width=True, key=f"save_manual_{did}"):
+                if st.button("ðŸ’¾ Guardar Cambios Manuales", width=" stretch\, key=f"save_manual_{did}"):
                     draft["draft_caption"] = st.session_state[editor_key]
                     with open(selected_file, "w", encoding="utf-8") as f:
                         json.dump(draft, f, indent=2, ensure_ascii=False)
-                    st.success("¡Texto guardado!")
+                    st.success("Â¡Texto guardado!")
 
             text_editor_fragment()
 
         with tab_video:
-            st.markdown("### 🎬 Generador de Reels")
-            st.info("Creá un video de 5 segundos con zoom animado y placas de texto.")
+            st.markdown("### ðŸŽ¬ Generador de Reels")
+            st.info("CreÃ¡ un video de 5 segundos con zoom animado y placas de texto.")
             
             reel_path = draft.get("reel_path")
             if reel_path and os.path.exists(reel_path):
                 st.video(reel_path)
-                if st.button("🗑️ Borrar Video", key=f"del_reel_{did}"):
+                if st.button("ðŸ—‘ï¸ Borrar Video", key=f"del_reel_{did}"):
                     try:
                         if os.path.exists(reel_path):
                             os.remove(reel_path)
                         draft["reel_path"] = None
                         with open(selected_file, "w", encoding="utf-8") as f:
                             json.dump(draft, f, indent=2, ensure_ascii=False)
-                        st.toast("Video borrado con éxito")
+                        st.toast("Video borrado con Ã©xito")
                         st.rerun()
                     except Exception as e:
                         st.error(f"Error al borrar: {e}")
             else:
                 st.warning("No hay un Reel generado para este borrador.")
 
-            if st.button("🚀 Generar Reel Animado", use_container_width=True, key=f"gen_reel_{did}"):
-                with st.status("🎬 Generando video con Gemini (Nano Banana)...", expanded=True) as v_status:
+            if st.button("ðŸš€ Generar Reel Animado", width=" stretch\, key=f"gen_reel_{did}"):
+                with st.status("ðŸŽ¬ Generando video con Gemini (Nano Banana)...", expanded=True) as v_status:
                     try:
                         from gemini_client import client as gemini
                         import asyncio
@@ -459,7 +459,7 @@ if selected_file:
                         # Ensure design settings include the full caption for the video engine
                         design["full_caption"] = draft.get("draft_caption", "")
                         
-                        # Preparamos las imágenes y el prompt para Gemini
+                        # Preparamos las imÃ¡genes y el prompt para Gemini
                         img_to_upload = []
                         if custom_img and os.path.exists(custom_img):
                             img_to_upload.append(custom_img)
@@ -481,23 +481,23 @@ if selected_file:
                         prompt_video = f"""Crea un video corporativo de alto impacto para este producto: {product.get('name', 'Producto')}. 
                         Usa las fotos adjuntas y el modelo Nano Banana. 
                         Mensaje a destacar: {current_caption_val}
-                        Estilo: Profesional, dinámico, ideal para redes sociales. 
+                        Estilo: Profesional, dinÃ¡mico, ideal para redes sociales. 
                         Tema semanal: {st.session_state.get('weekly_theme', '')}"""
                         
-                        # Llamada asíncrona a Gemini
+                        # Llamada asÃ­ncrona a Gemini
                         v_res = asyncio.run(gemini.generate_video(img_to_upload, prompt_video, output_dir="brain/reels"))
                         
                         if v_res:
                             # Verify normalization of path for Windows
                             res_normalized = os.path.normpath(v_res)
-                            v_status.update(label="✅ Video generado con éxito", state="complete")
+                            v_status.update(label="âœ… Video generado con Ã©xito", state="complete")
                             st.session_state[f"reel_path_{did}"] = res_normalized
                             draft["reel_path"] = res_normalized
                             with open(selected_file, "w", encoding="utf-8") as f:
                                 json.dump(draft, f, indent=2, ensure_ascii=False)
                             st.rerun()
                         else:
-                            # Diagnóstico ampliado de Railway
+                            # DiagnÃ³stico ampliado de Railway
                             from gemini_client import client as gem_inst
                             session_env = os.getenv("GEMINI_SESSION_B64")
                             # Comprobar si existe cualquier variable que empiece con GEMINI_ (sin revelar el valor completo)
@@ -505,15 +505,15 @@ if selected_file:
                             is_railway = session_env is not None and len(session_env.strip()) > 0
                             
                             if not is_railway and not os.path.exists(gem_inst.session_path):
-                                msg = f"❌ Error: Sesión no encontrada.\n"
+                                msg = f"âŒ Error: SesiÃ³n no encontrada.\n"
                                 msg += f"- Archivo local: {gem_inst.session_path} (No existe)\n"
-                                msg += f"- Variable ENV GEMINI_SESSION_B64: {'✅ OK' if is_railway else '❌ No detectada'}\n"
+                                msg += f"- Variable ENV GEMINI_SESSION_B64: {'âœ… OK' if is_railway else 'âŒ No detectada'}\n"
                                 msg += f"- Otras variables Gemini encontradas: {gem_vars if gem_vars else 'Ninguna'}"
                             else:
                                 if is_railway:
-                                    msg = "❌ Gemini no pudo generar el video en Railway. Verificá si la sesión se venció o si Google pide verificar identidad."
+                                    msg = "âŒ Gemini no pudo generar el video en Railway. VerificÃ¡ si la sesiÃ³n se venciÃ³ o si Google pide verificar identidad."
                                 else:
-                                    msg = "❌ Gemini no pudo generar el video localmente. Verificá tu conexión o si Gemini cambió la interfaz."
+                                    msg = "âŒ Gemini no pudo generar el video localmente. VerificÃ¡ tu conexiÃ³n o si Gemini cambiÃ³ la interfaz."
                             v_status.error(msg)
                             st.error(msg)
                             
@@ -529,19 +529,19 @@ if selected_file:
         st.markdown("---")
         @st.fragment
         def chat_assistant_fragment():
-            st.markdown("### 💬 Asistente Chat")
+            st.markdown("### ðŸ’¬ Asistente Chat")
             chat_container = st.container(height=350, border=True)
             chat_history_key = f"chat_history_{did}"
             if chat_history_key not in st.session_state:
                 st.session_state[chat_history_key] = [
-                    {"role": "assistant", "content": "¡Hola! ¿Qué ajustamos hoy? Decime por acá si querés cambiar el tono, las specs o el diseño. 🤖"}
+                    {"role": "assistant", "content": "Â¡Hola! Â¿QuÃ© ajustamos hoy? Decime por acÃ¡ si querÃ©s cambiar el tono, las specs o el diseÃ±o. ðŸ¤–"}
                 ]
             
             with chat_container:
                 for msg in st.session_state[chat_history_key]:
                     st.chat_message(msg["role"]).write(msg["content"])
 
-            if user_prompt := st.chat_input("Refiná el texto del post..."):
+            if user_prompt := st.chat_input("RefinÃ¡ el texto del post..."):
                 st.session_state[chat_history_key].append({"role": "user", "content": user_prompt})
                 # We can't use st.chat_message here as a placeholder easily inside fragment before logic, 
                 # but we can rely on session state rerun of the fragment.
@@ -550,7 +550,7 @@ if selected_file:
                     current_text = draft.get("draft_caption", "")
                     w_theme = st.session_state.get("weekly_theme", "")
                     
-                    with st.spinner("🤖 Escribiendo..."):
+                    with st.spinner("ðŸ¤– Escribiendo..."):
                          ai_res = refine_post(current_text, user_prompt, product_data=product, weekly_theme=w_theme)
                     
                     # Update draft
@@ -559,7 +559,7 @@ if selected_file:
                     with open(selected_file, "w", encoding="utf-8") as f:
                         json.dump(draft, f, indent=2, ensure_ascii=False)
                     
-                    st.session_state[chat_history_key].append({"role": "assistant", "content": "¡Texto actualizado! Podés verlo en la pestaña **✍️ Texto**."})
+                    st.session_state[chat_history_key].append({"role": "assistant", "content": "Â¡Texto actualizado! PodÃ©s verlo en la pestaÃ±a **âœï¸ Texto**."})
                     st.session_state[f"version_{file_id}"] += 1
                     st.rerun() # This will rerun JUST the fragment
                 except Exception as e:
@@ -571,8 +571,8 @@ if selected_file:
     st.markdown("---")
     
     # --- POST FORMAT SELECTION ---
-    st.markdown("##### 🚀 Configuración de Publicación")
-    format_options = ["🖼️ Imagen (Feed IG)", "🎥 Reel (IG)", "🎥 TikTok Video"]
+    st.markdown("##### ðŸš€ ConfiguraciÃ³n de PublicaciÃ³n")
+    format_options = ["ðŸ–¼ï¸ Imagen (Feed IG)", "ðŸŽ¥ Reel (IG)", "ðŸŽ¥ TikTok Video"]
     current_format = draft.get("preferred_format", "image")
     
     # Map stored format to UI options
@@ -581,7 +581,7 @@ if selected_file:
     
     col_fmt1, col_fmt2 = st.columns([1, 1])
     with col_fmt1:
-        st.write("¿Dónde querés publicar este post?")
+        st.write("Â¿DÃ³nde querÃ©s publicar este post?")
         selected_fmt = st.pills("Destino", options=format_options, selection_mode="single", default=format_options[def_idx], key=f"fmt_sel_{did}")
         
         # Resolve format logic
@@ -596,22 +596,22 @@ if selected_file:
             st.rerun()
 
     if new_fmt == "video" and not draft.get("reel_path"):
-        st.warning("⚠️ Seleccionaste 'Video' pero no has generado un Reel para este post. Generalo en la pestaña 'Video'.")
+        st.warning("âš ï¸ Seleccionaste 'Video' pero no has generado un Reel para este post. Generalo en la pestaÃ±a 'Video'.")
     
     st.markdown("<br>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns([2, 1, 1])
     
     with c1:
         if new_fmt == "tiktok":
-            btn_label = "✅ Aprobar y Publicar en TIKTOK 🎥"
+            btn_label = "âœ… Aprobar y Publicar en TIKTOK ðŸŽ¥"
         elif new_fmt == "video":
-            btn_label = "✅ Aprobar y Publicar REEL 🎥"
+            btn_label = "âœ… Aprobar y Publicar REEL ðŸŽ¥"
         else:
-            btn_label = "✅ Aprobar y Publicar IMAGEN 🖼️"
+            btn_label = "âœ… Aprobar y Publicar IMAGEN ðŸ–¼ï¸"
             
         btn_type = "primary"
         
-        if st.button(btn_label, type=btn_type, use_container_width=True, disabled=(status=="approved")):
+        if st.button(btn_label, type=btn_type, width=" stretch\, disabled=(status=="approved")):
             draft["approval_status"] = "approved"
             with open(selected_file, "w", encoding="utf-8") as f:
                 json.dump(draft, f, indent=2, ensure_ascii=False)
@@ -640,7 +640,7 @@ if selected_file:
                 if reel_path and os.path.exists(reel_path):
                     shutil.copy2(reel_path, base_path + ".mp4")
                 
-                st.toast(f"Backup guardado en Escritorio", icon="📂")
+                st.toast(f"Backup guardado en Escritorio", icon="ðŸ“‚")
             except Exception as e:
                 st.error(f"Error al guardar backup externo: {e}")
 
@@ -648,12 +648,12 @@ if selected_file:
             st.rerun()
             
     with c2:
-         if st.button("🗑️ Descartar", width='stretch'):
+         if st.button("ðŸ—‘ï¸ Descartar", width='stretch'):
             os.remove(selected_file)
             st.rerun()
     
     with c3:
-        if st.button("🚫 Cancelar", width='stretch'):
+        if st.button("ðŸš« Cancelar", width='stretch'):
             # Just go back to "Simple" mode or clear selection if we had one
             # Streamlit rerun will handle resetting local UI state
             st.rerun()
