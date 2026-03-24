@@ -648,12 +648,12 @@ if selected_file:
             st.rerun()
             
     with c2:
-         if st.button("🗑️ Descartar", use_container_width=True):
+         if st.button("🗑️ Descartar", width='stretch'):
             os.remove(selected_file)
             st.rerun()
     
     with c3:
-        if st.button("🚫 Cancelar", use_container_width=True):
+        if st.button("🚫 Cancelar", width='stretch'):
             # Just go back to "Simple" mode or clear selection if we had one
             # Streamlit rerun will handle resetting local UI state
             st.rerun()
