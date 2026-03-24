@@ -132,31 +132,51 @@ class GeminiClient:
                         break
                     except: pass
 
-                # INTENTO 2: Click en '+' y buscar opciones (Si el input directo falló)
+                # INTENTO 2: Click en '+' usando arquitectura SVG (más estable que labels)
                 if not uploaded:
-                    logger.info("❤️ LATIDO: Probando menú '+' (Plus)...")
-                    # Buscamos por icono o por label cercano al prompt
-                    btn_plus = page.locator('button:has(svg):left-of(div[contenteditable]), button[aria-label*="Añadir"], button[aria-label*="Más"]').first
+                    logger.info("❤️ LATIDO: Buscando botón '+' por patrón SVG...")
+                    plus_svg_path = 'button:has(svg path[d*="M19 13"]), button:has(svg path[d*="M11 11V5"]), button[aria-label*="Añadir"]'
+                    btn_plus = page.locator(plus_svg_path).first
                     if await btn_plus.is_visible():
-                        await btn_plus.dispatch_event("click") # Evento de bajo nivel
+                        logger.info("Click en botón + por SVG...")
+                        await btn_plus.dispatch_event("click")
                         await page.wait_for_timeout(1500)
-                        # Opción de subir archivos
-                        opt = page.locator('span:has-text("Subir"), [aria-label*="Subir"]').first
+                        
+                        # Opción de subir archivos (Buscamos texto o icono de drive/file)
+                        opt = page.locator('span:has-text("Subir"), [aria-label*="Subir"], .upload-option').first
                         if await opt.is_visible():
                             async with page.expect_file_chooser() as fc_info:
                                 await opt.click(force=True)
                             file_chooser = await fc_info.value
                             await file_chooser.set_files(abs_paths)
                             uploaded = True
-                            logger.info("Subida via menú '+' completada.")
-                            await page.wait_for_timeout(2000)
+                            logger.info("Subida via menú '+' (SVG) completada.")
+                            await page.wait_for_timeout(3000)
                         else:
                             await page.keyboard.press("Escape")
 
+                # INTENTO 3: Drag & Drop (Simulación de arrastre)
+                if not uploaded:
+                    logger.info("❤️ LATIDO: Intentando Drag & Drop de archivos...")
+                    try:
+                        # Buscamos el área donde se suelen soltar los archivos
+                        drop_zone = page.locator('div[contenteditable="true"], .input-area').first
+                        if await drop_zone.is_visible():
+                            # En Playwright el drag and drop de archivos se suele hacer con set_input_files 
+                            # Pero sobre el input oculto que se activa al hacer hover/drag
+                            # Probamos de nuevo con un selector más genérico de input
+                            hidden_input = page.locator('input[type="file"]').last
+                            await hidden_input.set_input_files(abs_paths)
+                            uploaded = True
+                            logger.info("Subida via hidden input / D&D simulado exitosa.")
+                            await page.wait_for_timeout(3000)
+                    except: pass
+
                 # 3. Ingresar el prompt
-                # USAMOS EL "CHEAT CODE" DE GEMINI ADVANCED: @Videos
-                final_prompt = f"@Videos {prompt_text}" if "@" not in prompt_text else prompt_text
-                logger.info(f"❤️ LATIDO: Escribiendo prompt...")
+                # Simplificamos el prompt para que NO genere texto de publicidad, solo el video del modelo Nano Banana
+                simplified_prompt = f"@Videos Usar las fotos adjuntas para generar un video corto usando el modelo NANO BANANA. El video debe referirse al producto mostrado y a la marca Bit Comunicaciones. No quiero una respuesta con texto publicitario, solo generá el video del modelo."
+                
+                logger.info(f"❤️ LATIDO: Escribiendo prompt simplificado...")
                 prompt_selectors = [
                     'div[contenteditable="true"]',
                     '[aria-label*="Gemini"]',
@@ -179,7 +199,7 @@ class GeminiClient:
                     await page.keyboard.press("Control+A")
                     await page.keyboard.press("Backspace")
                     await page.wait_for_timeout(3000) # Espera extra antes de escribir
-                    await page.keyboard.type(final_prompt, delay=60)
+                    await page.keyboard.type(simplified_prompt, delay=65)
                     await page.wait_for_timeout(1000)
                     
                     # 4. Enviar
