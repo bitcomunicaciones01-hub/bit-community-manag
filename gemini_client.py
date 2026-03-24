@@ -117,54 +117,69 @@ class GeminiClient:
                     logger.error(f"¡CRÍTICO! Ninguna imagen encontrada: {image_paths}")
                     return None
 
-                logger.info(f"❤️ LATIDO: Empezando subida de {len(abs_paths)} fotos...")
+                logger.info(f"❤️ LATIDO: Iniciando subida de {len(abs_paths)} fotos...")
                 
-                # --- ESTRATEGIA DE SUBIDA 3.0: INYECCIÓN CIEGA ---
-                logger.info("❤️ LATIDO: Iniciando inyección ciega de archivos...")
+                # DIAGNÓSTICO DE ARCHIVOS (Para ver si Railway los ve)
+                for ap in abs_paths:
+                    exists = os.path.exists(ap)
+                    size = os.path.getsize(ap) if exists else 0
+                    logger.info(f"Archivo: {os.path.basename(ap)} | Existe: {exists} | Tamaño: {size} bytes")
+
+                # --- ESTRATEGIA DE SUBIDA 4.0: ARRASTRE ATÓMICO (Drag & Drop via JS) ---
+                logger.info("❤️ LATIDO: Ejecutando simulación de Drag & Drop via JS...")
                 uploaded = False
                 
-                # 1. Buscamos TODOS los inputs de tipo file y les metemos las fotos
                 try:
-                    inputs = await page.query_selector_all('input[type="file"]')
-                    logger.info(f"Encontrados {len(inputs)} inputs de tipo archivo.")
-                    for idx, inp in enumerate(inputs):
-                        try:
-                            # Intentamos set_input_files directamente
-                            await inp.set_input_files(abs_paths)
-                            uploaded = True
-                            logger.info(f"Inyección exitosa en input #{idx}")
-                        except: pass
-                except Exception as ie:
-                    logger.warning(f"Error en escaneo de inputs: {ie}")
+                    # Inyectamos el archivo usando el sistema de DataTransfer de JS
+                    # Esto es lo que pasa cuando arrastras un archivo con el mouse
+                    from pathlib import Path
+                    
+                    for ap in abs_paths:
+                        file_content = base64.b64encode(open(ap, "rb").read()).decode()
+                        file_name = os.path.basename(ap)
+                        mime_type = "image/png" if file_name.endswith(".png") else "image/jpeg"
+                        
+                        # Script de JS para simular el drop
+                        js_drop = f"""
+                        (async () => {{
+                            const b64 = "{file_content}";
+                            const blob = await fetch("data:{mime_type};base64," + b64).then(r => r.blob());
+                            const file = new File([blob], "{file_name}", {{ type: "{mime_type}" }});
+                            const dataTransfer = new DataTransfer();
+                            dataTransfer.items.add(file);
+                            
+                            const dropZone = document.querySelector('div[contenteditable="true"]') || document.querySelector('.input-area') || document.body;
+                            const event = new DragEvent("drop", {{
+                                dataTransfer: dataTransfer,
+                                bubbles: true,
+                                cancelable: true
+                            }});
+                            dropZone.dispatchEvent(event);
+                        }})();
+                        """
+                        await page.evaluate(js_drop)
+                        await page.wait_for_timeout(1000)
+                    
+                    uploaded = True
+                    logger.info("✅ Simulación de Drop via JS completada.")
+                except Exception as de:
+                    logger.warning(f"Fallo en Drop via JS: {de}")
 
-                # 2. Si falló, intentamos el botón '+' con selector por SVG (último intento visual)
+                # 1. Fallback: Inyección en inputs (Si el drop falló)
                 if not uploaded:
-                    logger.info("❤️ LATIDO: Probando clic visual en '+'...")
-                    btn_plus = page.locator('button:has(svg path[d*="M19 13"]), button[aria-label*="Añadir"], .plus-button').first
-                    if await btn_plus.is_visible():
-                        await btn_plus.dispatch_event("click")
-                        await page.wait_for_timeout(2000)
-                        # Buscamos el input que se activó al hacer click
-                        new_inputs = await page.query_selector_all('input[type="file"]')
-                        for inp in new_inputs:
+                    try:
+                        inputs = await page.query_selector_all('input[type="file"]')
+                        for inp in inputs:
                             try:
                                 await inp.set_input_files(abs_paths)
                                 uploaded = True
-                                break
                             except: pass
-
-                # 3. ÚLTIMO RECURSO: Simulación de Drop via JS (Nivel Atómico)
-                if not uploaded:
-                    logger.info("❤️ LATIDO: Fallback extremo - Simulación de Drop via JS...")
-                    # Este bloque inyecta el archivo directamente en el buffer de transferencia del elemento
-                    # (Requiere que el elemento soporte drop, lo cual Gemini hace en toda el área de chat)
-                    pass # Lo omitimos por ahora para no complicar, pero el set_input_files sobre el input oculto suele ser suficiente
+                    except: pass
 
                 if not uploaded:
-                    logger.warning("⚠️ No se pudo confirmar la subida de archivos, procediendo con el prompt...")
+                    logger.warning("⚠️ No se pudo confirmar la subida, procediendo con el prompt...")
                 else:
-                    logger.info("✅ Archivos vinculados correctamente.")
-                    await page.wait_for_timeout(3000) # Tiempo para que Gemini procese las miniaturas
+                    await page.wait_for_timeout(4000) # Tiempo para que procese las miniaturas
 
                 # 4. Ingresar el prompt
                 # Simplificamos el prompt para que NO genere texto de publicidad, solo el video del modelo Nano Banana
