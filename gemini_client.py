@@ -79,11 +79,9 @@ class GeminiClient:
                 # No usamos networkidle porque en Railway puede tardar infinito por analytics/ads
                 await page.goto(self.url, wait_until="domcontentloaded", timeout=60000)
                 
-                # Esperamos a que aparezca el área principal
-                try:
-                    await page.wait_for_selector('div[contenteditable="true"], textarea', timeout=20000)
-                except:
-                    logger.warning("Timeout esperando selectores iniciales, procediendo igual...")
+                # Esperamos extra para que salten los cartelitos ("No te pierdas nada", etc.)
+                logger.info("Esperando estabilización de página...")
+                await page.wait_for_timeout(5000)
 
                 # Cerrar posibles popups o avisos
                 logger.info("Limpiando posibles overlays o popups...")
@@ -94,6 +92,8 @@ class GeminiClient:
                     'button:has-text("Probar")', # Banner de Nano Banana 2
                     'button:has-text("No, gracias")', # Popup de Pizarra/Canvas
                     'button:has-text("No gracias")',
+                    'button:has-text("Ahora no")', # Popup de Newsletter/Suscripción
+                    'button:has-text("Cerrar")',
                     '.dismiss-button',
                     '[aria-label="Cerrar"]'
                 ]
@@ -140,10 +140,11 @@ class GeminiClient:
                     if await btn_plus.is_visible():
                         logger.info("Click en botón + por SVG...")
                         await btn_plus.dispatch_event("click")
-                        await page.wait_for_timeout(1500)
+                        await page.wait_for_timeout(2000) # Más tiempo para que abra
                         
                         # Opción de subir archivos (Buscamos texto o icono de drive/file)
-                        opt = page.locator('span:has-text("Subir"), [aria-label*="Subir"], .upload-option').first
+                        # Agregamos selector de icono de 'Drive/Computer'
+                        opt = page.locator('span:has-text("Subir"), [aria-label*="Subir"], .upload-option, button:has(svg path[d*="M19.35 10.04"])').first
                         if await opt.is_visible():
                             async with page.expect_file_chooser() as fc_info:
                                 await opt.click(force=True)
