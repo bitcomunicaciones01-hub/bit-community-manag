@@ -13,7 +13,7 @@ load_dotenv()
 # Page Config
 st.set_page_config(
     page_title="BIT AI Community Manager",
-    page_icon="ðŸ¤–",
+    page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -168,7 +168,7 @@ with st.sidebar:
                 f.write(uploaded_template.getbuffer())
             st.success("Â¡DiseÃ±o actualizado!")
     
-    st.markdown("### ðŸ“‚ Posts Generados")
+    st.markdown("### 📁 Posts Generados")
     # File selector
     draft_files = glob.glob(os.path.join(draft_dir, "*.json"))
     draft_files.sort(key=os.path.getmtime, reverse=True)
@@ -365,7 +365,7 @@ if selected_file:
 
                 with cb:
                     limpieza_val = not design.get("show_logo", True)
-                    limpieza_on = st.checkbox("ðŸ¤– Limpieza Foto (y Mascota)", value=limpieza_val, key=f"logo_{did}")
+                    limpieza_on = st.checkbox("🤖 Limpieza Foto (y Mascota)", value=limpieza_val, key=f"logo_{did}")
                     if (not limpieza_on) != design.get("show_logo"):
                         design["show_logo"] = not limpieza_on
                         draft["design_settings"] = design
@@ -406,7 +406,7 @@ if selected_file:
                 current_caption = draft.get("draft_caption", "")
                 st.text_area("Caption de Instagram", value=current_caption, height=250, key=editor_key)
                 
-                if st.button("ðŸ’¾ Guardar Cambios Manuales", width="stretch", key=f"save_manual_{did}"):
+                if st.button("💾 Guardar Cambios Manuales", width="stretch", key=f"save_manual_{did}"):
                     draft["draft_caption"] = st.session_state[editor_key]
                     with open(selected_file, "w", encoding="utf-8") as f:
                         json.dump(draft, f, indent=2, ensure_ascii=False)
@@ -415,7 +415,7 @@ if selected_file:
             text_editor_fragment()
 
         with tab_video:
-            st.markdown("### ðŸŽ¬ Generador de Reels")
+            st.markdown("### 🎬 Generador de Reels")
             st.info("CreÃ¡ un video de 5 segundos con zoom animado y placas de texto.")
             
             reel_path = draft.get("reel_path")
@@ -436,7 +436,7 @@ if selected_file:
                 st.warning("No hay un Reel generado para este borrador.")
 
             if st.button("ðŸš€ Generar Reel Animado", width="stretch", key=f"gen_reel_{did}"):
-                with st.status("ðŸŽ¬ Generando video con Gemini (Nano Banana)...", expanded=True) as v_status:
+                with st.status("🎬 Generando video con Gemini (Nano Banana)...", expanded=True) as v_status:
                     try:
                         from gemini_client import client as gemini
                         import asyncio
@@ -534,7 +534,7 @@ if selected_file:
             chat_history_key = f"chat_history_{did}"
             if chat_history_key not in st.session_state:
                 st.session_state[chat_history_key] = [
-                    {"role": "assistant", "content": "Â¡Hola! Â¿QuÃ© ajustamos hoy? Decime por acÃ¡ si querÃ©s cambiar el tono, las specs o el diseÃ±o. ðŸ¤–"}
+                    {"role": "assistant", "content": "Â¡Hola! Â¿QuÃ© ajustamos hoy? Decime por acÃ¡ si querÃ©s cambiar el tono, las specs o el diseÃ±o. 🤖"}
                 ]
             
             with chat_container:
@@ -550,7 +550,7 @@ if selected_file:
                     current_text = draft.get("draft_caption", "")
                     w_theme = st.session_state.get("weekly_theme", "")
                     
-                    with st.spinner("ðŸ¤– Escribiendo..."):
+                    with st.spinner("🤖 Escribiendo..."):
                          ai_res = refine_post(current_text, user_prompt, product_data=product, weekly_theme=w_theme)
                     
                     # Update draft
@@ -611,7 +611,7 @@ if selected_file:
             
         btn_type = "primary"
         
-        if st.button(btn_label, type=btn_type, width=" stretch\, disabled=(status=="approved")):
+        if st.button(btn_label, type=btn_type, width="stretch", disabled=(status=="approved")):
             draft["approval_status"] = "approved"
             with open(selected_file, "w", encoding="utf-8") as f:
                 json.dump(draft, f, indent=2, ensure_ascii=False)
@@ -640,7 +640,7 @@ if selected_file:
                 if reel_path and os.path.exists(reel_path):
                     shutil.copy2(reel_path, base_path + ".mp4")
                 
-                st.toast(f"Backup guardado en Escritorio", icon="ðŸ“‚")
+                st.toast(f"Backup guardado en Escritorio", icon="📁")
             except Exception as e:
                 st.error(f"Error al guardar backup externo: {e}")
 
