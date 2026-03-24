@@ -120,16 +120,26 @@ class GeminiClient:
                         except Exception as fe:
                             logger.error(f"Error técnico subiendo imágenes: {fe}")
                     else:
-                        logger.warning("No se encontró input[type=file]. Intentando forzar con el botón '+'...")
-                        plus_btn = page.locator('button[aria-label*="Subir"], button[aria-label*="Más"], .add-button').first
+                        plus_btn = page.locator('button[aria-label*="Subir"], button[aria-label*="Más"], button[aria-label="Añadir contenido"], .add-button').first
                         if await plus_btn.is_visible():
+                            logger.info("Click en el botón '+' para abrir menú...")
                             await plus_btn.click()
-                            await page.wait_for_timeout(1000)
+                            await page.wait_for_timeout(1500)
+                            
+                            # Intentar clickear "Subir archivos" en el menú flotante
+                            upload_option = page.locator('span:has-text("Subir archivos"), [aria-label*="Subir archivos"]').first
+                            if await upload_option.is_visible():
+                                logger.info("Click en 'Subir archivos' del menú...")
+                                await upload_option.click()
+                                await page.wait_for_timeout(1000)
+                            
                             # Re-intentar encontrar el input tras el click
                             file_input = page.locator('input[type="file"]').first
                             if await file_input.count() > 0:
                                 await file_input.set_input_files(abs_paths)
                                 logger.info("Subida forzada tras click en '+' completada.")
+                            else:
+                                logger.warning("Seguimos sin encontrar input[type=file] tras abrir el menú.")
                 else:
                     logger.error(f"No hay imágenes válidas para subir. Originales: {image_paths}")
 
