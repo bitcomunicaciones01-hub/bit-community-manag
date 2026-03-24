@@ -122,13 +122,13 @@ def select_draft(filepath):
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/4712/4712109.png", width=80)
     st.title("BIT Manager")
-    st.caption("v1.0.0 â€¢ Local Mode")
+    st.caption("v1.0.0 • Local Mode")
 
     st.markdown("---")
     
     # 1. GENERATION BUTTON (Restored)
-    if st.button("âœ¨ Generar Nuevo Post", width=" stretch\, type="primary"):
-        with st.status("ðŸ¤– Creando contenido...", expanded=True) as status:
+    if st.button("✨ Generar Nuevo Post", width="stretch", type="primary"):
+        with st.status("🤖 Creando contenido...", expanded=True) as status:
             st.write("Analizando productos...")
             os.environ["DASHBOARD_MODE"] = "true"
             try:
@@ -270,7 +270,7 @@ if selected_file:
                 from PIL import Image
                 import time
                 display_img = Image.open(final_display_path)
-                preview_placeholder.image(display_img, width=" stretch\)
+                preview_placeholder.image(display_img, width="stretch")
             
             st.markdown(f"**{product.get('name', 'Producto')}**")
             st.caption(f"Precio: ${product.get('price', '0')}")
@@ -406,7 +406,7 @@ if selected_file:
                 current_caption = draft.get("draft_caption", "")
                 st.text_area("Caption de Instagram", value=current_caption, height=250, key=editor_key)
                 
-                if st.button("ðŸ’¾ Guardar Cambios Manuales", width=" stretch\, key=f"save_manual_{did}"):
+                if st.button("ðŸ’¾ Guardar Cambios Manuales", width="stretch", key=f"save_manual_{did}"):
                     draft["draft_caption"] = st.session_state[editor_key]
                     with open(selected_file, "w", encoding="utf-8") as f:
                         json.dump(draft, f, indent=2, ensure_ascii=False)
@@ -435,7 +435,7 @@ if selected_file:
             else:
                 st.warning("No hay un Reel generado para este borrador.")
 
-            if st.button("ðŸš€ Generar Reel Animado", width=" stretch\, key=f"gen_reel_{did}"):
+            if st.button("ðŸš€ Generar Reel Animado", width="stretch", key=f"gen_reel_{did}"):
                 with st.status("ðŸŽ¬ Generando video con Gemini (Nano Banana)...", expanded=True) as v_status:
                     try:
                         from gemini_client import client as gemini
