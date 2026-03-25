@@ -228,42 +228,80 @@ class GeminiClient:
                     return None
 
                 # 4. Esperar generación y descargar
-                # Este paso es tricky porque depende de cómo Gemini entrega el video.
-                # Normalmente aparece un mensaje con un video y un botón de descarga.
-                logger.info("Esperando que Gemini genere el video (esto puede tardar)...")
+                # Este paso es crítico: Gemini puede tardar en procesar y el DOM es complejo
+                logger.info("⏳ Iniciando escaneo profundo de video (hasta 2 minutos)...")
+                await page.wait_for_timeout(10000) # Espera inicial mínima
                 
-                # Esperar a que aparezca un elemento de video o un botón de descarga
-                # Limitamos la espera a 2 minutos
-                start_time = time.time()
-                video_element = None
-                download_btn = None
-                
-                while time.time() - start_time < 120:
-                    # Buscar selector de video o descarga
-                    # Basado en la UI de Gemini, buscamos botones que digan "Descargar" o iconos de descarga
-                    download_btn = page.locator('button[aria-label="Descargar"], a[download]').last
-                    if await download_btn.is_visible():
-                        logger.info("¡Botón de descarga encontrado!")
-                        break
-                    await page.wait_for_timeout(5000)
-                
-                if download_btn and await download_btn.is_visible():
-                    # Manejar la descarga
-                    async with page.expect_download() as download_info:
-                        await download_btn.click()
-                    download = await download_info.value
+                video_file = None
+                for i in range(60): # 60 intentos x 2s = 120s (2 min)
+                    logger.info(f"Escaneo de video - Intento {i+1}/60...")
                     
-                    filename = f"reels_gemini_{int(time.time())}.mp4"
-                    output_path = os.path.join(output_dir, filename)
-                    await download.save_as(output_path)
-                    
-                    logger.info(f"Video guardado en: {output_path}")
-                    return output_path
-                else:
-                    logger.error("No se encontró el video generado tras 2 minutos.")
-                    # Tomar screenshot para debug
-                    await page.screenshot(path="brain/gemini_error.png")
-                    return None
+                    # --- MÉTODO A: Búsqueda en el último mensaje del modelo ---
+                    try:
+                        # Buscamos la respuesta del modelo (etiqueta custom de Google)
+                        last_response = page.locator('model-response, .model-response, [data-message-author-role="assistant"]').last
+                        if await last_response.is_visible():
+                            # 1. Buscar etiqueta <video> real (a veces accesible via src blob o http)
+                            v_els = await last_response.locator('video').all()
+                            for v in v_els:
+                                src = await v.get_attribute('src')
+                                if src and (src.startswith('http') or src.startswith('blob')):
+                                    logger.info(f"✅ Video detectado en <video> tag: {src[:40]}...")
+                                    if src.startswith('http'):
+                                        import requests
+                                        r = requests.get(src, timeout=30)
+                                        final_path = os.path.join(output_dir, f"video_{int(time.time())}.mp4")
+                                        with open(final_path, 'wb') as f:
+                                            f.write(r.content)
+                                        video_file = final_path
+                                        return video_file
+                            
+                            # 2. Buscar botones de descarga por ICONO (SVG path de flecha abajo)
+                            # El icono de descarga de Google suele tener este path: M12 16.5l-4-4h3V5h2v7.5h3z
+                            dl_selectors = [
+                                'button:has(svg path[d*="M12 16"]), button:has(svg path[d*="M19 9"]), button[aria-label*="Descargar"]',
+                                'a[download], button:has-text("Descargar"), button:has-text("Download"), [aria-label*="escar"]',
+                                '.download-button, [data-test-id*="download"]'
+                            ]
+                            for sel in dl_selectors:
+                                btn = last_response.locator(sel).first
+                                if await btn.is_visible():
+                                    logger.info(f"✅ Botón de descarga detectado por selector: {sel}")
+                                    async with page.expect_download(timeout=30000) as download_info:
+                                        await btn.click(force=True)
+                                    download = await download_info.value
+                                    video_file = os.path.join(output_dir, f"video_{int(time.time())}.mp4")
+                                    await download.save_as(video_file)
+                                    logger.info(f"✅ Video descargado con éxito: {video_file}")
+                                    return video_file
+                    except Exception as e:
+                        logger.debug(f"Error escaneando mensaje: {e}")
+
+                    # --- MÉTODO B: Búsqueda Global / Iframes ---
+                    try:
+                        iframes = await page.query_selector_all('iframe')
+                        for frame in iframes:
+                            cf = await frame.content_frame()
+                            if cf:
+                                v = await cf.query_selector('video')
+                                if v:
+                                    src = await v.get_attribute('src')
+                                    if src and src.startswith('http'):
+                                        logger.info("✅ Video encontrado dentro de un IFRAME.")
+                                        # Descarga manual
+                                        import requests
+                                        r = requests.get(src)
+                                        p = os.path.join(output_dir, f"video_iframe_{int(time.time())}.mp4")
+                                        with open(p, 'wb') as f: f.write(r.content)
+                                        return p
+                    except: pass
+
+                    await page.wait_for_timeout(2000)
+
+                # Si llegamos aquí sin video, error final
+                logger.error("No se encontró el video generado tras 2 minutos.")
+                await page.screenshot(path="brain/gemini_error.png")
+                return None
 
             except Exception as e:
                 logger.error(f"Error en automatización de Gemini: {e}")
