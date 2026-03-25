@@ -493,11 +493,18 @@ if selected_file:
                         Estilo: Profesional, dinámico, ideal para redes sociales. 
                         Tema semanal: {st.session_state.get('weekly_theme', '')}"""
                         
-                        # Llamada asíncrona a Gemini
-                        v_res = asyncio.run(gemini.generate_video(img_to_upload, prompt_video, output_dir="brain/reels"))
+                        # --- SELECCION DE MOTOR DE VIDEO ---
+                        if "Sora" in provider:
+                            v_status.write("🚀 Contactando a OpenAI Sora 2 API...")
+                            from sora_client import sora_client as sora
+                            v_res = asyncio.run(sora.generate_video(img_to_upload, prompt_video))
+                        else:
+                            v_status.write("🍌 Activando Gema Gemini (Nano Banana)...")
+                            from gemini_client import client as gem_engine
+                            v_res = asyncio.run(gem_engine.generate_video(img_to_upload, prompt_video))
                         
-                        if v_res:
-                            # Verify normalization of path for Windows
+                        if v_res and os.path.exists(v_res):
+                            # Normalizar ruta para Windows y actualizar estado
                             res_normalized = os.path.normpath(v_res)
                             v_status.update(label="✅ Video generado con éxito", state="complete")
                             st.session_state[f"reel_path_{did}"] = res_normalized
