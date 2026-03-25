@@ -4,6 +4,7 @@ import asyncio
 import base64
 import json as _json
 from playwright.async_api import async_playwright
+from playwright_stealth import stealth_async
 import logging
 
 # Configurar logging
@@ -75,6 +76,9 @@ class GeminiClient:
             await page.set_viewport_size({"width": 1280, "height": 800})
             
             try:
+                # Aplicamos Stealth para que Google no nos vea como bot en Railway
+                await stealth_async(page)
+                
                 logger.info(f"Navegando a {self.url}...")
                 # No usamos networkidle porque en Railway puede tardar infinito por analytics/ads
                 await page.goto(self.url, wait_until="domcontentloaded", timeout=60000)
@@ -82,6 +86,18 @@ class GeminiClient:
                 # Esperamos extra para que salten los cartelitos ("No te pierdas nada", etc.)
                 logger.info("Esperando estabilización de página...")
                 await page.wait_for_timeout(5000)
+
+                # 1. ACTIVACIÓN DE GEMA "NANO BANANA" (Lógica del bot del usuario)
+                logger.info("🍌 [Gemini Web] Buscando herramienta especializada 'nano banana'...")
+                try:
+                    # Buscamos en el sidebar o menú por texto
+                    banana_btn = page.locator('span, div, a, p, span[title]').filter(has_text="nano banana").last
+                    if await banana_btn.is_visible(timeout=8000):
+                        logger.info("🍌 [Gemini Web] ¡Activando Nano Banana!")
+                        await banana_btn.click(force=True)
+                        await page.wait_for_timeout(4000)
+                except Exception as be:
+                    logger.warning(f"No se encontró 'nano banana' en el menú, se usará el modelo base: {be}")
 
                 # Cerrar posibles popups o avisos
                 logger.info("Limpiando posibles overlays o popups...")
@@ -125,47 +141,38 @@ class GeminiClient:
                     size = os.path.getsize(ap) if exists else 0
                     logger.info(f"Archivo: {os.path.basename(ap)} | Existe: {exists} | Tamaño: {size} bytes")
 
-                # --- ESTRATEGIA DE SUBIDA 4.0: ARRASTRE ATÓMICO (Drag & Drop via JS) ---
-                logger.info("❤️ LATIDO: Ejecutando simulación de Drag & Drop via JS...")
+                # --- ESTRATEGIA DE SUBIDA 5.0: SELECTOR ESTRUCTURAL (Lógica del bot del usuario) ---
+                logger.info("❤️ LATIDO: Buscando botón '+' mediante selector estructural profundo...")
                 uploaded = False
                 
                 try:
-                    # Inyectamos el archivo usando el sistema de DataTransfer de JS
-                    # Esto es lo que pasa cuando arrastras un archivo con el mouse
-                    from pathlib import Path
-                    
-                    for ap in abs_paths:
-                        file_content = base64.b64encode(open(ap, "rb").read()).decode()
-                        file_name = os.path.basename(ap)
-                        mime_type = "image/png" if file_name.endswith(".png") else "image/jpeg"
+                    # Buscamos el componente rich-textarea y navegamos hacia su hermano o padre que contiene los botones
+                    # La lógica exacta del bot local es: rich-textarea -> parent/sibling -> button
+                    # Intentamos el XPATH directo del bot: rich-textarea/../../../..//button
+                    plus_btn = page.locator('rich-textarea').locator('xpath=./../../../..').locator('button').first
+                    if await plus_btn.is_visible(timeout=5000):
+                        logger.info("✅ Encontrado botón '+' estructural. Ejecutando click...")
+                        await plus_btn.click(force=True)
+                        await page.wait_for_timeout(2000)
                         
-                        # Script de JS para simular el drop
-                        js_drop = f"""
-                        (async () => {{
-                            const b64 = "{file_content}";
-                            const blob = await fetch("data:{mime_type};base64," + b64).then(r => r.blob());
-                            const file = new File([blob], "{file_name}", {{ type: "{mime_type}" }});
-                            const dataTransfer = new DataTransfer();
-                            dataTransfer.items.add(file);
-                            
-                            const dropZone = document.querySelector('div[contenteditable="true"]') || document.querySelector('.input-area') || document.body;
-                            const event = new DragEvent("drop", {{
-                                dataTransfer: dataTransfer,
-                                bubbles: true,
-                                cancelable: true
-                            }});
-                            dropZone.dispatchEvent(event);
-                        }})();
-                        """
-                        await page.evaluate(js_drop)
-                        await page.wait_for_timeout(1000)
-                    
-                    uploaded = True
-                    logger.info("✅ Simulación de Drop via JS completada.")
-                except Exception as de:
-                    logger.warning(f"Fallo en Drop via JS: {de}")
+                        # Opción de subir archivos (Buscamos texto "Subir" como en el bot local)
+                        with page.expect_file_chooser(timeout=8000) as fc_info:
+                            upload_option = page.locator('text="Subir archivos", text="Subir", [aria-label*="Subir"]').first
+                            if await upload_option.is_visible():
+                                await upload_option.click(force=True)
+                            else:
+                                # Fallback si el menú no abrió bien o el texto es distinto
+                                await page.keyboard.press("Escape")
+                                raise Exception("Menú de subida no visible")
+                        
+                        file_chooser = await fc_info.value
+                        await file_chooser.set_files(abs_paths)
+                        uploaded = True
+                        logger.info("✅ Foto cargada con éxito mediante selector estructural.")
+                except Exception as se:
+                    logger.warning(f"Fallo selector estructural: {se}. Probando inyección ciega...")
 
-                # 1. Fallback: Inyección en inputs (Si el drop falló)
+                # Fallback: Inyección en inputs si el selector estructural falló
                 if not uploaded:
                     try:
                         inputs = await page.query_selector_all('input[type="file"]')
@@ -176,53 +183,28 @@ class GeminiClient:
                             except: pass
                     except: pass
 
-                if not uploaded:
-                    logger.warning("⚠️ No se pudo confirmar la subida, procediendo con el prompt...")
+                if uploaded:
+                    logger.info("✅ [Gemini Web] ¡FOTO CARGADA! Esperando 8s para sincronización visual...")
+                    await page.wait_for_timeout(8000) # Pausa vital del bot local
                 else:
-                    await page.wait_for_timeout(4000) # Tiempo para que procese las miniaturas
+                    logger.warning("⚠️ No se pudo confirmar la subida, procediendo con el prompt...")
 
                 # 4. Ingresar el prompt
                 # Simplificamos el prompt para que NO genere texto de publicidad, solo el video del modelo Nano Banana
                 simplified_prompt = f"@Videos Usar las fotos adjuntas para generar un video corto usando el modelo NANO BANANA. El video debe referirse al producto mostrado y a la marca Bit Comunicaciones. No quiero una respuesta con texto publicitario, solo generá el video del modelo."
                 
-                logger.info(f"❤️ LATIDO: Escribiendo prompt simplificado...")
-                prompt_selectors = [
-                    'div[contenteditable="true"]',
-                    '[aria-label*="Gemini"]',
-                    'textarea',
-                    '.input-area'
-                ]
+                logger.info(f"❤️ LATIDO: Escribiendo orden corporativa al cerebro...")
                 
-                text_target = None
-                for ps in prompt_selectors:
-                    el = page.locator(ps).first
-                    if await el.is_visible():
-                        text_target = el
-                        break
-                
-                if text_target:
-                    logger.info(f"Escribiendo prompt forzado en: {await text_target.evaluate('el => el.tagName')}")
-                    await text_target.click(force=True)
-                    await page.wait_for_timeout(500)
-                    # Limpieza agresiva y tipeo
-                    await page.keyboard.press("Control+A")
-                    await page.keyboard.press("Backspace")
-                    await page.wait_for_timeout(3000) # Espera extra antes de escribir
-                    await page.keyboard.type(simplified_prompt, delay=65)
+                input_box = page.locator('div[contenteditable="true"]').first
+                if await input_box.is_visible():
+                    # Usamos .fill() y .press("Enter") como el bot local
+                    await input_box.fill(simplified_prompt)
                     await page.wait_for_timeout(1000)
-                    
-                    # 4. Enviar
-                    logger.info("❤️ LATIDO: Enviando orden...")
-                    await page.keyboard.press("Control+Enter") # Más directo para Gemini
-                    await page.wait_for_timeout(1500)
-                    
-                    # Fallback click
-                    send_btn = page.locator('button[aria-label*="Enviar"], .send-button').first
-                    if await send_btn.is_enabled():
-                        await send_btn.click(force=True)
+                    await input_box.press("Enter")
+                    logger.info("✅ Orden enviada.")
                 else:
                     logger.error("No se encontró área de texto para el prompt.")
-                    await page.screenshot(path="brain/gemini_no_text_area.png")
+                    return None
 
                 # 4. Esperar generación y descargar
                 # Este paso es tricky porque depende de cómo Gemini entrega el video.
