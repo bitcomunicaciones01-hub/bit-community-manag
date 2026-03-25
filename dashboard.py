@@ -512,33 +512,25 @@ if selected_file:
                             with open(selected_file, "w", encoding="utf-8") as f:
                                 json.dump(draft, f, indent=2, ensure_ascii=False)
                             st.rerun()
-                        else:
-                            # Diagnóstico ampliado de Railway
-                            from gemini_client import client as gem_inst
-                            session_env = os.getenv("GEMINI_SESSION_B64")
-                            # Comprobar si existe cualquier variable que empiece con GEMINI_ (sin revelar el valor completo)
-                            gem_vars = [k for k in os.environ.keys() if k.startswith("GEMINI_")]
-                            is_railway = session_env is not None and len(session_env.strip()) > 0
-                            
-                            if not is_railway and not os.path.exists(gem_inst.session_path):
-                                msg = f"❌ Error: Sesión no encontrada.\n"
-                                msg += f"- Archivo local: {gem_inst.session_path} (No existe)\n"
-                                msg += f"- Variable ENV GEMINI_SESSION_B64: {'✅ OK' if is_railway else '❌ No detectada'}\n"
-                                msg += f"- Otras variables Gemini encontradas: {gem_vars if gem_vars else 'Ninguna'}"
-                            else:
-                                if is_railway:
-                                    msg = "❌ Gemini no pudo generar el video en Railway. Verificá si la sesión se venció o si Google pide verificar identidad."
-                                else:
-                                    msg = "❌ Gemini no pudo generar el video localmente. Verificá tu conexión o si Gemini cambió la interfaz."
-                            v_status.error(msg)
-                            st.error(msg)
-                            
-                            # Mostrar screenshot de error si existe
-                            err_screenshot = "brain/gemini_error.png"
-                            if os.path.exists(err_screenshot):
-                                st.image(err_screenshot, caption="Captura del error en Gemini")
-                            elif os.path.exists("brain/gemini_crash.png"):
-                                st.image("brain/gemini_crash.png", caption="Captura del crash en Gemini")
+                        else:
+                            # Error handler segun proveedor seleccionado
+                            if "Sora" in provider:
+                                msg = "Error: Sora 2 no pudo generar el video. Verifica que tu OpenAI API Key tenga acceso a Sora 2."
+                            else:
+                                from gemini_client import client as gem_inst
+                                session_env = os.getenv("GEMINI_SESSION_B64")
+                                is_railway = session_env is not None and len(session_env.strip()) > 0
+                                if is_railway:
+                                    msg = "Error: Gemini no pudo generar el video en Railway. Verifica si la sesion se vencio."
+                                else:
+                                    msg = "Error: Gemini no pudo generar el video. Verifica tu conexion."
+                            v_status.error(msg)
+                            st.error(msg)
+                            if "Sora" not in provider:
+                                if os.path.exists("brain/gemini_error.png"):
+                                    st.image("brain/gemini_error.png", caption="Error en Gemini")
+                                elif os.path.exists("brain/gemini_crash.png"):
+                                    st.image("brain/gemini_crash.png", caption="Crash en Gemini")
                     except Exception as ve:
                         v_status.error(f"Error: {ve}")
 

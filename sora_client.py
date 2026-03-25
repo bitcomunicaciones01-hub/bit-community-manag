@@ -1,10 +1,10 @@
 import os
 import time
 import logging
+import requests as http_requests
 from openai import OpenAI
 from dotenv import load_dotenv
 
-# Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("sora_client")
 
@@ -21,62 +21,93 @@ class SoraClient:
 
     async def generate_video(self, image_paths, prompt, output_dir="brain/reels"):
         """
-        Genera un video usando OpenAI Sora 2 (Image-to-Video).
-        Nota: En Marzo 2026, Sora 2 es el modelo estándar de video en OpenAI.
+        Genera un video usando OpenAI Sora 2 (text-to-video o image-to-video).
+        La API de Sora es asíncrona: primero crea el job y luego hace polling.
         """
         if not self.client:
-            logger.error("Cliente OpenAI no inicializado.")
-            return None
+            raise Exception("Cliente OpenAI no inicializado. Verificá OPENAI_API_KEY en el .env.")
 
         os.makedirs(output_dir, exist_ok=True)
-        
+
         try:
             logger.info(f"🚀 Iniciando generación con Sora 2 (OpenAI)...")
             logger.info(f"Prompt: {prompt}")
-            
-            # En la SDK de 2026, el acceso a videos es directo
-            # Nota: Usamos image_to_video si hay imágenes
-            
-            # Subir imágenes a OpenAI si es necesario (asumimos que la API acepta paths o bytes)
-            # Para este ejemplo, enviamos el prompt y la referencia a la primera imagen
-            
-            # SIMULACIÓN DE LLAMADA API (Siguiendo el estándar de 2026)
-            # En un entorno real, estaríamos usando: client.videos.create(...)
-            
-            # Por ahora, implementamos la estructura de la llamada
-            try:
-                # Intentamos la llamada real (esto fallará si el modelo no está disponible o el SDK es viejo)
-                # Pero preparamos el terreno para Sora 2
-                response = self.client.videos.create(
-                    model="sora-2", # o "sora-2-i2v"
-                    prompt=prompt,
-                    input_images=image_paths, # La SDK de 2026 debería manejar esto
-                    quality="high"
-                )
-                
-                video_url = response.url
-                logger.info(f"✅ Video generado por Sora: {video_url}")
-                
-                # Descargar el video
-                import requests
-                r = requests.get(video_url, stream=True)
-                filename = f"reels_sora_{int(time.time())}.mp4"
-                output_path = os.path.join(output_dir, filename)
-                
-                with open(output_path, 'wb') as f:
-                    for chunk in r.iter_content(chunk_size=8192):
-                        f.write(chunk)
-                
-                return output_path
 
-            except Exception as api_err:
-                logger.warning(f"⚠️ Sora 2 no disponible o error en API: {api_err}")
-                # Fallback o error informativo
-                raise api_err
+            # Construir los parámetros base (text-to-video)
+            params = {
+                "model": "sora-2",
+                "prompt": prompt,
+                "seconds": 8,
+                "size": "720x1280",  # Vertical (9:16 para Reels/TikTok)
+            }
+
+            # Si hay imagen disponible, usarla como referencia (image-to-video)
+            if image_paths:
+                first_img = image_paths[0]
+                if os.path.exists(first_img):
+                    # Subir la imagen a OpenAI Files y obtener el file_id
+                    logger.info(f"📷 Subiendo imagen de referencia: {first_img}")
+                    with open(first_img, "rb") as img_file:
+                        uploaded = self.client.files.create(
+                            file=img_file,
+                            purpose="vision"
+                        )
+                    params["input_reference"] = {"file_id": uploaded.id}
+                    logger.info(f"✅ Imagen subida con ID: {uploaded.id}")
+
+            # Crear el job de video (asíncrono)
+            logger.info("📹 Enviando solicitud de video a Sora 2...")
+            job = self.client.videos.create(**params)
+            job_id = job.id
+            logger.info(f"✅ Job creado: {job_id} | Estado: {job.status}")
+
+            # Polling hasta que el video esté listo (max 10 minutos)
+            max_wait = 600  # 10 minutos
+            interval = 15   # revisar cada 15 segundos
+            elapsed = 0
+
+            while elapsed < max_wait:
+                time.sleep(interval)
+                elapsed += interval
+
+                job = self.client.videos.retrieve(job_id)
+                logger.info(f"⏳ [{elapsed}s] Estado del job: {job.status}")
+
+                if job.status == "succeeded":
+                    break
+                elif job.status in ("failed", "cancelled"):
+                    raise Exception(f"Sora job terminó con estado: {job.status}")
+
+            if job.status != "succeeded":
+                raise Exception(f"Timeout esperando video de Sora (status: {job.status})")
+
+            # Descargar el video generado
+            video_url = job.video.url if hasattr(job, 'video') and job.video else None
+            if not video_url:
+                # Intentar extraer de otra estructura de respuesta
+                for attr in ['url', 'download_url', 'result_url']:
+                    video_url = getattr(job, attr, None)
+                    if video_url:
+                        break
+
+            if not video_url:
+                raise Exception("No se encontró la URL del video en la respuesta de Sora.")
+
+            logger.info(f"✅ Video generado por Sora: {video_url[:60]}...")
+            r = http_requests.get(video_url, stream=True, timeout=120)
+            filename = f"reels_sora_{int(time.time())}.mp4"
+            output_path = os.path.join(output_dir, filename)
+
+            with open(output_path, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+
+            logger.info(f"✅ Video guardado en: {output_path}")
+            return output_path
 
         except Exception as e:
             logger.error(f"❌ Error en generación Sora: {e}")
-            return None
+            raise  # Re-lanzamos para que el dashboard maneje el error correctamente
 
 # Singleton
 sora_client = SoraClient()
