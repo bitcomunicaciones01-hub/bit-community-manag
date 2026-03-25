@@ -94,31 +94,19 @@ class SoraClient:
             logger.info(f"🔍 Estructura del job completado: {dir(job)}")
             logger.info(f"🔍 job dict: {vars(job) if hasattr(job, '__dict__') else str(job)}")
 
-            # Descargar el video generado
-            # Sora puede devolver 'generations', 'video', 'url', etc.
-            video_url = None
-            if hasattr(job, 'generations') and job.generations:
-                gen = job.generations[0]
-                video_url = gen.url if hasattr(gen, 'url') else None
-            if not video_url and hasattr(job, 'video') and job.video:
-                video_url = job.video.url if hasattr(job.video, 'url') else str(job.video)
-            if not video_url:
-                for attr in ['url', 'download_url', 'result_url', 'output_url']:
-                    video_url = getattr(job, attr, None)
-                    if video_url:
-                        break
+            # Descargar el video generado usando el método del SDK
+            logger.info(f"⬇️ Descargando video directamente desde el SDK (ID: {job_id})...")
+            
+            try:
+                response = self.client.videos.download_content(job_id)
+                filename = f"reels_sora_{int(time.time())}.mp4"
+                output_path = os.path.join(output_dir, filename)
 
-            if not video_url:
-                raise Exception("No se encontró la URL del video en la respuesta de Sora.")
+                with open(output_path, 'wb') as f:
+                    f.write(response.content)
+            except Exception as e:
+                raise Exception(f"No se pudo descargar el contenido de video de Sora: {e}")
 
-            logger.info(f"✅ Video generado por Sora: {str(video_url)[:60]}...")
-            r = http_requests.get(video_url, stream=True, timeout=120)
-            filename = f"reels_sora_{int(time.time())}.mp4"
-            output_path = os.path.join(output_dir, filename)
-
-            with open(output_path, 'wb') as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
 
             logger.info(f"✅ Video guardado en: {output_path}")
             return output_path
