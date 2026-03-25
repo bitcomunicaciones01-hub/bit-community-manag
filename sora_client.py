@@ -81,19 +81,29 @@ class SoraClient:
                 job = self.client.videos.retrieve(job_id)
                 logger.info(f"⏳ [{elapsed}s] Estado del job: {job.status}")
 
-                if job.status == "succeeded":
+                if job.status in ("succeeded", "completed"):
+                    logger.info(f"✅ Job completado con estado: {job.status}")
                     break
                 elif job.status in ("failed", "cancelled"):
                     raise Exception(f"Sora job terminó con estado: {job.status}")
 
-            if job.status != "succeeded":
+            if job.status not in ("succeeded", "completed"):
                 raise Exception(f"Timeout esperando video de Sora (status: {job.status})")
 
+            # Loguear la estructura completa del job para encontrar la URL
+            logger.info(f"🔍 Estructura del job completado: {dir(job)}")
+            logger.info(f"🔍 job dict: {vars(job) if hasattr(job, '__dict__') else str(job)}")
+
             # Descargar el video generado
-            video_url = job.video.url if hasattr(job, 'video') and job.video else None
+            # Sora puede devolver 'generations', 'video', 'url', etc.
+            video_url = None
+            if hasattr(job, 'generations') and job.generations:
+                gen = job.generations[0]
+                video_url = gen.url if hasattr(gen, 'url') else None
+            if not video_url and hasattr(job, 'video') and job.video:
+                video_url = job.video.url if hasattr(job.video, 'url') else str(job.video)
             if not video_url:
-                # Intentar extraer de otra estructura de respuesta
-                for attr in ['url', 'download_url', 'result_url']:
+                for attr in ['url', 'download_url', 'result_url', 'output_url']:
                     video_url = getattr(job, attr, None)
                     if video_url:
                         break
@@ -101,7 +111,7 @@ class SoraClient:
             if not video_url:
                 raise Exception("No se encontró la URL del video en la respuesta de Sora.")
 
-            logger.info(f"✅ Video generado por Sora: {video_url[:60]}...")
+            logger.info(f"✅ Video generado por Sora: {str(video_url)[:60]}...")
             r = http_requests.get(video_url, stream=True, timeout=120)
             filename = f"reels_sora_{int(time.time())}.mp4"
             output_path = os.path.join(output_dir, filename)
