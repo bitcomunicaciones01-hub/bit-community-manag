@@ -4,7 +4,7 @@ import asyncio
 import base64
 import json as _json
 from playwright.async_api import async_playwright
-from playwright_stealth import stealth_async
+from playwright_stealth import stealth
 import logging
 
 # Configurar logging
@@ -77,7 +77,7 @@ class GeminiClient:
             
             try:
                 # Aplicamos Stealth para que Google no nos vea como bot en Railway
-                await stealth_async(page)
+                await stealth(page)
                 
                 logger.info(f"Navegando a {self.url}...")
                 # No usamos networkidle porque en Railway puede tardar infinito por analytics/ads
