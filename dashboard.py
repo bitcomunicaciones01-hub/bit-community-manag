@@ -156,6 +156,13 @@ with st.sidebar:
         st.toast(f"Tema actualizado: {weekly_theme}")
 
     st.markdown("---")
+    st.markdown("### 📽️ Motor de Video")
+    v_provider = st.selectbox("Proveedor", ["Gemini (Nano Banana)", "OpenAI Sora 2"], index=0, help="Elegí Sora 2 si te quedaste sin créditos en Gemini.")
+    st.session_state["video_provider"] = v_provider
+    if v_provider == "OpenAI Sora 2":
+        st.info("Usando tu OpenAI API Key.")
+
+    st.markdown("---")
     
     # Template Uploader
     with st.expander("🎨 Cargar Diseño (Fondo)"):
@@ -436,9 +443,11 @@ if selected_file:
                 st.warning("No hay un Reel generado para este borrador.")
 
             if st.button("🚀 Generar Reel Animado", use_container_width=True, key=f"gen_reel_{did}"):
-                with st.status("🎬 Generando video con Gemini (Nano Banana)...", expanded=True) as v_status:
+                provider = st.session_state.get("video_provider", "Gemini (Nano Banana)")
+                status_msg = f"🎬 Generando con {provider}..."
+                
+                with st.status(status_msg, expanded=True) as v_status:
                     try:
-                        from gemini_client import client as gemini
                         import asyncio
                         import time
                         
