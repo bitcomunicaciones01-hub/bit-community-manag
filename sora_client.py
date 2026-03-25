@@ -42,18 +42,16 @@ class SoraClient:
             }
 
             # Si hay imagen disponible, usarla como referencia (image-to-video)
+            # El SDK espera un archivo abierto (io.IOBase), no un dict
             if image_paths:
                 first_img = image_paths[0]
                 if os.path.exists(first_img):
-                    # Subir la imagen a OpenAI Files y obtener el file_id
-                    logger.info(f"📷 Subiendo imagen de referencia: {first_img}")
+                    logger.info(f"📷 Usando imagen como referencia: {first_img}")
+                    # Leer los bytes y pasarlos como tupla (nombre, bytes, mimetype)
                     with open(first_img, "rb") as img_file:
-                        uploaded = self.client.files.create(
-                            file=img_file,
-                            purpose="vision"
-                        )
-                    params["input_reference"] = {"file_id": uploaded.id}
-                    logger.info(f"✅ Imagen subida con ID: {uploaded.id}")
+                        img_bytes = img_file.read()
+                    params["input_reference"] = (os.path.basename(first_img), img_bytes, "image/jpeg")
+                    logger.info(f"✅ Imagen cargada en memoria ({len(img_bytes)} bytes)")
 
             # Crear el job de video (asíncrono)
             logger.info("📹 Enviando solicitud de video a Sora 2...")
