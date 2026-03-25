@@ -442,6 +442,14 @@ if selected_file:
             else:
                 st.warning("No hay un Reel generado para este borrador.")
 
+            st.write("📸 **Imagen personalizada para el video (Opcional)**")
+            uploaded_vid_img = st.file_uploader("Subí una foto desde tu computadora para usar en el video", type=["png", "jpg", "jpeg"], key=f"up_vid_{did}")
+            if uploaded_vid_img:
+                custom_img_path = os.path.join("brain", "drafts", f"custom_img_{did}.png")
+                with open(custom_img_path, "wb") as f:
+                    f.write(uploaded_vid_img.getbuffer())
+                st.success("✅ Imagen lista para usar en la generación del video.")
+
             if st.button("🚀 Generar Reel Animado", use_container_width=True, key=f"gen_reel_{did}"):
                 provider = st.session_state.get("video_provider", "Gemini (Nano Banana)")
                 status_msg = f"🎬 Generando con {provider}..."
@@ -487,11 +495,19 @@ if selected_file:
                                     img_to_upload.append(p_img_path)
                                 except: pass
                         
-                        prompt_video = f"""Crea un video corporativo de alto impacto para este producto: {product.get('name', 'Producto')}. 
-                        Usa las fotos adjuntas y el modelo Nano Banana. 
-                        Mensaje a destacar: {current_caption_val}
-                        Estilo: Profesional, dinámico, ideal para redes sociales. 
-                        Tema semanal: {st.session_state.get('weekly_theme', '')}"""
+                        # Evitamos mandarle el texto "Nano Banana" a Sora para que no dibuje una banana
+                        if "Sora" in provider:
+                            prompt_video = f"""Crea un video corporativo de alto impacto para este producto: {product.get('name', 'Producto')}. 
+                            Usa las fotos adjuntas como referencia.
+                            Mensaje a destacar: {current_caption_val}
+                            Estilo: Profesional, dinámico, realista, ideal para redes sociales. 
+                            Tema semanal: {st.session_state.get('weekly_theme', '')}"""
+                        else:
+                            prompt_video = f"""Crea un video corporativo de alto impacto para este producto: {product.get('name', 'Producto')}. 
+                            Usa las fotos adjuntas y el modelo Nano Banana. 
+                            Mensaje a destacar: {current_caption_val}
+                            Estilo: Profesional, dinámico, ideal para redes sociales. 
+                            Tema semanal: {st.session_state.get('weekly_theme', '')}"""
                         
                         # --- SELECCION DE MOTOR DE VIDEO ---
                         if "Sora" in provider:
