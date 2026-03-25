@@ -148,69 +148,83 @@ class GeminiClient:
                     size = os.path.getsize(ap) if exists else 0
                     logger.info(f"Archivo: {os.path.basename(ap)} | Existe: {exists} | Tamaño: {size} bytes")
 
-                # --- ESTRATEGIA DE SUBIDA 5.0: SELECTOR ESTRUCTURAL (Lógica del bot del usuario) ---
-                logger.info("❤️ LATIDO: Buscando botón '+' mediante selector estructural profundo...")
+                # --- ESTRATEGIA DE SUBIDA 6.0: PERSISTENCIA TOTAL ---
+                logger.info("❤️ LATIDO: Iniciando secuencia de adjunto de fotos...")
                 uploaded = False
                 
+                # 1. Intentamos el selector estructural del bot local
                 try:
-                    # Buscamos el componente rich-textarea y navegamos hacia su hermano o padre que contiene los botones
-                    # La lógica exacta del bot local es: rich-textarea -> parent/sibling -> button
-                    # Intentamos el XPATH directo del bot: rich-textarea/../../../..//button
                     plus_btn = page.locator('rich-textarea').locator('xpath=./../../../..').locator('button').first
                     if await plus_btn.is_visible(timeout=5000):
-                        logger.info("✅ Encontrado botón '+' estructural. Ejecutando click...")
                         await plus_btn.click(force=True)
-                        await page.wait_for_timeout(2000)
+                        await page.wait_for_timeout(1500)
                         
-                        # Opción de subir archivos (Buscamos texto "Subir" como en el bot local)
-                        with page.expect_file_chooser(timeout=8000) as fc_info:
-                            upload_option = page.locator('text="Subir archivos", text="Subir", [aria-label*="Subir"]').first
-                            if await upload_option.is_visible():
-                                await upload_option.click(force=True)
-                            else:
-                                # Fallback si el menú no abrió bien o el texto es distinto
-                                await page.keyboard.press("Escape")
-                                raise Exception("Menú de subida no visible")
+                        # Buscamos la opción de subir (probamos varios nombres en español)
+                        upload_selectors = [
+                            'text="Subir desde la computadora"',
+                            'text="Subir archivos"',
+                            'text="Subir"',
+                            '[aria-label*="computadora"]',
+                            'button:has(svg path[d*="M19.35 10.04"])' # Icono de Drive/Nube
+                        ]
                         
-                        file_chooser = await fc_info.value
-                        await file_chooser.set_files(abs_paths)
-                        uploaded = True
-                        logger.info("✅ Foto cargada con éxito mediante selector estructural.")
-                except Exception as se:
-                    logger.warning(f"Fallo selector estructural: {se}. Probando inyección ciega...")
+                        target_opt = None
+                        for sel in upload_selectors:
+                            opt = page.locator(sel).first
+                            if await opt.is_visible():
+                                target_opt = opt
+                                break
+                        
+                        if target_opt:
+                            async with page.expect_file_chooser(timeout=8000) as fc_info:
+                                await target_opt.click(force=True)
+                            file_chooser = await fc_info.value
+                            await file_chooser.set_files(abs_paths)
+                            uploaded = True
+                    else:
+                        logger.info("Botón '+' estructural no visible, probando SVG...")
+                except Exception as e:
+                    logger.warning(f"Error en subida estructural: {e}")
 
-                # Fallback: Inyección en inputs si el selector estructural falló
+                # 2. Fallback: Botón por icono SVG directo
                 if not uploaded:
                     try:
-                        inputs = await page.query_selector_all('input[type="file"]')
-                        for inp in inputs:
-                            try:
-                                await inp.set_input_files(abs_paths)
-                                uploaded = True
-                            except: pass
+                        plus_svg = page.locator('button:has(svg path[d*="M19 13"]), button[aria-label*="Añadir"]').first
+                        if await plus_svg.is_visible():
+                            async with page.expect_file_chooser(timeout=8000) as fc_info:
+                                await plus_svg.click(force=True)
+                            file_chooser = await fc_info.value
+                            await file_chooser.set_files(abs_paths)
+                            uploaded = True
                     except: pass
 
+                # 3. VERIFICACIÓN: ¿Se subieron de verdad?
                 if uploaded:
-                    logger.info("✅ [Gemini Web] ¡FOTO CARGADA! Esperando 8s para sincronización visual...")
-                    await page.wait_for_timeout(8000) # Pausa vital del bot local
+                    logger.info("Esperando confirmación visual de miniaturas...")
+                    # Buscamos elementos que representen archivos cargados (suelen tener un botón de cerrar/eliminar)
+                    try:
+                        await page.wait_for_selector('[aria-label*="Eliminar"], [aria-label*="archivo"], .thumbnail-container', timeout=10000)
+                        logger.info("✅ Miniaturas detectadas en el chat.")
+                    except:
+                        logger.warning("No se detectaron miniaturas, pero Playwright reportó set_files exitoso.")
+                    
+                    await page.wait_for_timeout(6000) # Pausa estratégica para procesamiento
                 else:
-                    logger.warning("⚠️ No se pudo confirmar la subida, procediendo con el prompt...")
+                    logger.warning("⚠️ No se pudo adjuntar archivos. El video saldrá genérico.")
 
                 # 4. Ingresar el prompt
-                # Simplificamos el prompt para que NO genere texto de publicidad, solo el video del modelo Nano Banana
-                simplified_prompt = f"@Videos Usar las fotos adjuntas para generar un video corto usando el modelo NANO BANANA. El video debe referirse al producto mostrado y a la marca Bit Comunicaciones. No quiero una respuesta con texto publicitario, solo generá el video del modelo."
+                # Simplificación extrema para que Gemini no se confunda
+                short_prompt = f"Generar video NANO BANANA para este producto de Bit Comunicaciones. No escribas texto, solo el video."
                 
-                logger.info(f"❤️ LATIDO: Escribiendo orden corporativa al cerebro...")
-                
+                logger.info(f"⌨️ Escribiendo orden: {short_prompt}")
                 input_box = page.locator('div[contenteditable="true"]').first
                 if await input_box.is_visible():
-                    # Usamos .fill() y .press("Enter") como el bot local
-                    await input_box.fill(simplified_prompt)
+                    await input_box.fill(short_prompt)
                     await page.wait_for_timeout(1000)
                     await input_box.press("Enter")
-                    logger.info("✅ Orden enviada.")
+                    logger.info("✅ Enter presionado.")
                 else:
-                    logger.error("No se encontró área de texto para el prompt.")
+                    logger.error("No se encontró área de texto.")
                     return None
 
                 # 4. Esperar generación y descargar
