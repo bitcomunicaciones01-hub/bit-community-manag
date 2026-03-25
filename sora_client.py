@@ -42,16 +42,26 @@ class SoraClient:
             }
 
             # Si hay imagen disponible, usarla como referencia (image-to-video)
-            # El SDK espera un archivo abierto (io.IOBase), no un dict
+            # Sora exige que la imagen tenga EXACTAMENTE el mismo tamaño que el video (720x1280)
             if image_paths:
                 first_img = image_paths[0]
                 if os.path.exists(first_img):
-                    logger.info(f"📷 Usando imagen como referencia: {first_img}")
-                    # Leer los bytes y pasarlos como tupla (nombre, bytes, mimetype)
-                    with open(first_img, "rb") as img_file:
-                        img_bytes = img_file.read()
-                    params["input_reference"] = (os.path.basename(first_img), img_bytes, "image/jpeg")
-                    logger.info(f"✅ Imagen cargada en memoria ({len(img_bytes)} bytes)")
+                    logger.info(f"📷 Redimensionando imagen a 720x1280 para Sora...")
+                    from PIL import Image
+                    import io as io_module
+                    target_w, target_h = 720, 1280
+                    with Image.open(first_img) as img:
+                        img = img.convert("RGB")
+                        # Escalar manteniendo ratio y agregar padding negro
+                        img.thumbnail((target_w, target_h), Image.LANCZOS)
+                        padded = Image.new("RGB", (target_w, target_h), (0, 0, 0))
+                        offset = ((target_w - img.width) // 2, (target_h - img.height) // 2)
+                        padded.paste(img, offset)
+                        buf = io_module.BytesIO()
+                        padded.save(buf, format="JPEG", quality=90)
+                        img_bytes = buf.getvalue()
+                    params["input_reference"] = ("product.jpg", img_bytes, "image/jpeg")
+                    logger.info(f"✅ Imagen lista: 720x1280 ({len(img_bytes)} bytes)")
 
             # Crear el job de video (asíncrono)
             logger.info("📹 Enviando solicitud de video a Sora 2...")
