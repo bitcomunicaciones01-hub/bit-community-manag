@@ -238,42 +238,95 @@ class GeminiClient:
                     
                     # --- MÉTODO A: Búsqueda en el último mensaje del modelo ---
                     try:
-                        # Buscamos la respuesta del modelo (etiqueta custom de Google)
-                        last_response = page.locator('model-response, .model-response, [data-message-author-role="assistant"]').last
-                        if await last_response.is_visible():
-                            # 1. Buscar etiqueta <video> real (a veces accesible via src blob o http)
+                        # Buscamos la respuesta del modelo (varios selectores por si cambia)
+                        response_selectors = [
+                            'model-response',
+                            '.model-response',
+                            '[data-message-author-role="assistant"]',
+                            'div[role="log"] div[aria-label*="Gemini"]',
+                            '.message-content'
+                        ]
+                        
+                        last_response = None
+                        for rs in response_selectors:
+                            found = page.locator(rs).last
+                            if await found.is_visible():
+                                last_response = found
+                                break
+
+                        if last_response:
+                            # 1. Buscar etiqueta <video> real
                             v_els = await last_response.locator('video').all()
+                            # Fallback global si no hay en la última respuesta
+                            if not v_els:
+                                v_els = await page.locator('video').all()
+
                             for v in v_els:
                                 src = await v.get_attribute('src')
                                 if src and (src.startswith('http') or src.startswith('blob')):
-                                    logger.info(f"✅ Video detectado en <video> tag: {src[:40]}...")
+                                    logger.info(f"✅ Video detectado: {src[:40]}...")
+                                    
+                                    final_path = os.path.join(output_dir, f"video_{int(time.time())}.mp4")
+                                    
                                     if src.startswith('http'):
                                         import requests
                                         r = requests.get(src, timeout=30)
-                                        final_path = os.path.join(output_dir, f"video_{int(time.time())}.mp4")
                                         with open(final_path, 'wb') as f:
                                             f.write(r.content)
-                                        video_file = final_path
-                                        return video_file
+                                        return final_path
+                                    elif src.startswith('blob'):
+                                        # Descarga de BLOB via JS
+                                        logger.info("⬇️ Descargando video BLOB mediante inyección JS...")
+                                        js_code = """
+                                        async (src) => {
+                                            const resp = await fetch(src);
+                                            const blob = await resp.blob();
+                                            return new Promise((resolve) => {
+                                                const reader = new FileReader();
+                                                reader.onloadend = () => resolve(reader.result);
+                                                reader.readAsDataURL(blob);
+                                            });
+                                        }
+                                        """
+                                        b64_data = await page.evaluate(js_code, src)
+                                        if "," in b64_data:
+                                            b64_content = b64_data.split(",")[1]
+                                            with open(final_path, 'wb') as f:
+                                                f.write(base64.b64decode(b64_content))
+                                            return final_path
                             
-                            # 2. Buscar botones de descarga por ICONO (SVG path de flecha abajo)
-                            # El icono de descarga de Google suele tener este path: M12 16.5l-4-4h3V5h2v7.5h3z
+                            # 2. Buscar botones de descarga
                             dl_selectors = [
-                                'button:has(svg path[d*="M12 16"]), button:has(svg path[d*="M19 9"]), button[aria-label*="Descargar"]',
-                                'a[download], button:has-text("Descargar"), button:has-text("Download"), [aria-label*="escar"]',
-                                '.download-button, [data-test-id*="download"]'
+                                'button:has(svg path[d*="M12 16"])', 
+                                'button:has(svg path[d*="M19 9"])',
+                                'button[aria-label*="Descargar"]',
+                                'button[aria-label*="Download"]',
+                                'button[aria-label*="descargar"]',
+                                'a[download]', 
+                                'button:has-text("Descargar")', 
+                                'button:has-text("Download")',
+                                '.download-button',
+                                '[data-test-id*="download"]'
                             ]
+                            
                             for sel in dl_selectors:
+                                # Primero en la respuesta, luego global
                                 btn = last_response.locator(sel).first
+                                if not await btn.is_visible():
+                                    btn = page.locator(sel).last
+                                
                                 if await btn.is_visible():
-                                    logger.info(f"✅ Botón de descarga detectado por selector: {sel}")
-                                    async with page.expect_download(timeout=30000) as download_info:
-                                        await btn.click(force=True)
-                                    download = await download_info.value
-                                    video_file = os.path.join(output_dir, f"video_{int(time.time())}.mp4")
-                                    await download.save_as(video_file)
-                                    logger.info(f"✅ Video descargado con éxito: {video_file}")
-                                    return video_file
+                                    logger.info(f"✅ Botón de descarga detectado: {sel}")
+                                    try:
+                                        async with page.expect_download(timeout=30000) as download_info:
+                                            await btn.click(force=True)
+                                        download = await download_info.value
+                                        video_file = os.path.join(output_dir, f"video_{int(time.time())}.mp4")
+                                        await download.save_as(video_file)
+                                        logger.info(f"✅ Video descargado con éxito: {video_file}")
+                                        return video_file
+                                    except Exception as de:
+                                        logger.warning(f"Fallo al clickear botón de descarga {sel}: {de}")
                     except Exception as e:
                         logger.debug(f"Error escaneando mensaje: {e}")
 
@@ -286,21 +339,33 @@ class GeminiClient:
                                 v = await cf.query_selector('video')
                                 if v:
                                     src = await v.get_attribute('src')
-                                    if src and src.startswith('http'):
+                                    if src and (src.startswith('http') or src.startswith('blob')):
                                         logger.info("✅ Video encontrado dentro de un IFRAME.")
-                                        # Descarga manual
-                                        import requests
-                                        r = requests.get(src)
-                                        p = os.path.join(output_dir, f"video_iframe_{int(time.time())}.mp4")
-                                        with open(p, 'wb') as f: f.write(r.content)
-                                        return p
+                                        final_path = os.path.join(output_dir, f"video_iframe_{int(time.time())}.mp4")
+                                        
+                                        if src.startswith('http'):
+                                            import requests
+                                            r = requests.get(src)
+                                            with open(final_path, 'wb') as f: f.write(r.content)
+                                            return final_path
+                                        elif src.startswith('blob'):
+                                            # Evaluar en el frame
+                                            js_code = "async (s) => { const r = await fetch(s); const b = await r.blob(); return new Promise(res => { const rd = new FileReader(); rd.onloadend = () => res(rd.result); rd.readAsDataURL(b); }); }"
+                                            b64_data = await cf.evaluate(js_code, src)
+                                            if "," in b64_data:
+                                                with open(final_path, 'wb') as f:
+                                                    f.write(base64.b64decode(b64_data.split(",")[1]))
+                                                return final_path
                     except: pass
 
                     await page.wait_for_timeout(2000)
 
                 # Si llegamos aquí sin video, error final
                 logger.error("No se encontró el video generado tras 2 minutos.")
-                await page.screenshot(path="brain/gemini_error.png")
+                try:
+                    await page.screenshot(path="brain/gemini_error.png", full_page=True)
+                    logger.info("📸 Captura de error guardada en brain/gemini_error.png")
+                except: pass
                 return None
 
             except Exception as e:
