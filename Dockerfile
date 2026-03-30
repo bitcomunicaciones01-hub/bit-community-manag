@@ -24,7 +24,7 @@ COPY requirements.txt .
 
 # Install PyTorch CPU-only FIRST (much smaller than GPU version)
 # This prevents sentence-transformers from pulling the 2GB GPU version
-RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
 # Install remaining dependencies
 RUN pip install --no-cache-dir -r requirements.txt
