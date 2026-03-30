@@ -97,14 +97,25 @@ class GeminiClient:
                 # 1. ACTIVACIÓN DE GEMA "NANO BANANA" (Lógica del bot del usuario)
                 logger.info("🍌 [Gemini Web] Buscando herramienta especializada 'nano banana'...")
                 try:
-                    # Buscamos en el sidebar o menú por texto
-                    banana_btn = page.locator('span, div, a, p, span[title]').filter(has_text="nano banana").last
-                    if await banana_btn.is_visible(timeout=8000):
+                    # Buscamos en el sidebar o menú por texto (ahora con regex para mayor robustez)
+                    import re
+                    banana_btn = page.locator('span, div, a, p, span[title]').filter(has_text=re.compile(r"nano banana", re.IGNORECASE)).first
+                    if await banana_btn.is_visible(timeout=10000):
                         logger.info("🍌 [Gemini Web] ¡Activando Nano Banana!")
                         await banana_btn.click(force=True)
-                        await page.wait_for_timeout(4000)
+                        await page.wait_for_timeout(5000)
+                    else:
+                        # Buscamos en la sección de "Gems" si no está visible arriba
+                        gems_section = page.locator('text="Mis gemas", text="Gems", text="Mis Gems"').first
+                        if await gems_section.is_visible():
+                            await gems_section.click()
+                            await page.wait_for_timeout(2000)
+                            banana_btn = page.locator('text="nano banana"').first
+                            if await banana_btn.is_visible():
+                                await banana_btn.click()
+                                await page.wait_for_timeout(3000)
                 except Exception as be:
-                    logger.warning(f"No se encontró 'nano banana' en el menú, se usará el modelo base: {be}")
+                    logger.warning(f"No se pudo activar 'nano banana' automáticamente: {be}")
 
                 # Cerrar posibles popups o avisos
                 logger.info("Limpiando posibles overlays o popups...")

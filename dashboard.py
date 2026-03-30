@@ -495,19 +495,10 @@ if selected_file:
                                     img_to_upload.append(p_img_path)
                                 except: pass
                         
-                        # Evitamos mandarle el texto "Nano Banana" a Sora para que no dibuje una banana
                         if "Sora" in provider:
-                            prompt_video = f"""Crea un video corporativo de alto impacto para este producto: {product.get('name', 'Producto')}. 
-                            Usa las fotos adjuntas como referencia.
-                            Mensaje a destacar: {current_caption_val}
-                            Estilo: Profesional, dinámico, realista, ideal para redes sociales. 
-                            Tema semanal: {st.session_state.get('weekly_theme', '')}"""
+                            prompt_video = f"Crea un video corporativo para: {product.get('name', 'Producto')}. Mensaje: {current_caption_val}. Estilo: Profesional."
                         else:
-                            prompt_video = f"""Crea un video corporativo de alto impacto para este producto: {product.get('name', 'Producto')}. 
-                            Usa las fotos adjuntas y el modelo Nano Banana. 
-                            Mensaje a destacar: {current_caption_val}
-                            Estilo: Profesional, dinámico, ideal para redes sociales. 
-                            Tema semanal: {st.session_state.get('weekly_theme', '')}"""
+                            prompt_video = f"Generar video NANO BANANA para este producto: {product.get('name', 'Producto')}. No escribas texto, solo el video."
                         
                         # --- SELECCION DE MOTOR DE VIDEO ---
                         if "Sora" in provider:
