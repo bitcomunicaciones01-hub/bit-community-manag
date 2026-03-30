@@ -201,28 +201,38 @@ class GeminiClient:
                 # 3. VERIFICACIÓN: ¿Se subieron de verdad?
                 if uploaded:
                     logger.info("Esperando confirmación visual de miniaturas...")
-                    # Buscamos elementos que representen archivos cargados (suelen tener un botón de cerrar/eliminar)
                     try:
-                        await page.wait_for_selector('[aria-label*="Eliminar"], [aria-label*="archivo"], .thumbnail-container', timeout=10000)
+                        await page.wait_for_selector('[aria-label*="Eliminar"], [aria-label*="archivo"], .thumbnail-container', timeout=15000)
                         logger.info("✅ Miniaturas detectadas en el chat.")
                     except:
                         logger.warning("No se detectaron miniaturas, pero Playwright reportó set_files exitoso.")
                     
-                    await page.wait_for_timeout(6000) # Pausa estratégica para procesamiento
+                    await page.wait_for_timeout(8000) # Pausa estratégica para procesamiento
                 else:
                     logger.warning("⚠️ No se pudo adjuntar archivos. El video saldrá genérico.")
 
                 # 4. Ingresar el prompt
-                # Simplificación extrema para que Gemini no se confunda
-                short_prompt = f"Generar video NANO BANANA para este producto de Bit Comunicaciones. No escribas texto, solo el video."
+                # Usamos el prompt_text recibido del dashboard (NO hardcodeado)
+                logger.info(f"⌨️ Escribiendo orden: {prompt_text[:100]}...")
                 
-                logger.info(f"⌨️ Escribiendo orden: {short_prompt}")
                 input_box = page.locator('div[contenteditable="true"]').first
                 if await input_box.is_visible():
-                    await input_box.fill(short_prompt)
+                    await input_box.click() # Asegurar foco
                     await page.wait_for_timeout(1000)
+                    await input_box.fill(prompt_text)
+                    await page.wait_for_timeout(2000) # Espera humana
+                    
+                    # Intentar enviar con Enter y con el botón de envío (más robusto)
                     await input_box.press("Enter")
                     logger.info("✅ Enter presionado.")
+                    
+                    try:
+                        # Buscamos el botón de enviar (flecha derecha/arriba)
+                        send_btn = page.locator('button[aria-label*="enviar"], button[aria-label*="Send"], button:has(svg path[d*="M2.01 21L23 12 2.01 3"])').first
+                        if await send_btn.is_enabled(timeout=3000):
+                            await send_btn.click()
+                            logger.info("✅ Botón de enviar clickeado.")
+                    except: pass
                 else:
                     logger.error("No se encontró área de texto.")
                     return None
