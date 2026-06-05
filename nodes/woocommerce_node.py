@@ -1,4 +1,4 @@
-from woocommerce_client import get_recent_products, search_products
+from woocommerce_client import get_recent_products, search_products, get_categories, get_products_by_category
 import random
 import json
 import os
@@ -66,6 +66,28 @@ def woocommerce_intake(state):
                     search_variations.append(" ".join(singular_parts))
             
             all_searched = []
+            
+            # --- CATEGORY SEARCH ---
+            print(f"Checking for category matching: '{weekly_theme}'")
+            categories = get_categories()
+            matched_category_ids = []
+            if categories:
+                for cat in categories:
+                    cat_name_lower = cat.get('name', '').lower()
+                    for query in search_variations:
+                        # Match if the query is in the category name, or category name is in query
+                        if query and len(query) > 3 and (query in cat_name_lower or cat_name_lower in query):
+                            matched_category_ids.append(cat['id'])
+                            print(f"Matched category: {cat.get('name')}")
+                            break
+                            
+            for cat_id in matched_category_ids:
+                print(f"Fetching products for matched category ID: {cat_id}")
+                cat_products = get_products_by_category(cat_id, limit=30)
+                if cat_products: 
+                    all_searched.extend(cat_products)
+
+            # --- PRODUCT NAME SEARCH ---
             for query in search_variations:
                 print(f"Sniper Attempt: '{query}'")
                 res = search_products(query, limit=30)

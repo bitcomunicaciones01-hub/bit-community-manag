@@ -110,6 +110,84 @@ def search_products(query, limit=20):
         print(f"Error searching WooCommerce products: {e}")
         return []
 
+def get_categories(limit=100):
+    """
+    Fetch all product categories from WooCommerce.
+    
+    Returns:
+        List of category dicts with id, name, slug, count
+    """
+    try:
+        response = wcapi.get("products/categories", params={
+            "per_page": limit,
+            "hide_empty": True
+        })
+        
+        if response.status_code != 200:
+            print(f"WooCommerce Categories API Error: {response.status_code}")
+            return []
+        
+        categories = response.json()
+        cat_list = []
+        for cat in categories:
+            cat_list.append({
+                "id": cat.get("id"),
+                "name": cat.get("name", ""),
+                "slug": cat.get("slug", ""),
+                "count": cat.get("count", 0)
+            })
+        
+        print(f"[OK] Fetched {len(cat_list)} categories from WooCommerce")
+        return cat_list
+    except Exception as e:
+        print(f"Error fetching WooCommerce categories: {e}")
+        return []
+
+def get_products_by_category(category_id, limit=50):
+    """
+    Fetch products belonging to a specific category ID.
+    
+    Args:
+        category_id: WooCommerce category ID
+        limit: Maximum number of products to return
+    
+    Returns:
+        List of product dictionaries
+    """
+    try:
+        response = wcapi.get("products", params={
+            "category": category_id,
+            "per_page": limit,
+            "status": "publish",
+            "stock_status": "instock"
+        })
+        
+        if response.status_code != 200:
+            print(f"WooCommerce API Error: {response.status_code}")
+            return []
+        
+        products = response.json()
+        product_list = []
+        for product in products:
+            product_data = {
+                "id": product.get("id"),
+                "name": product.get("name"),
+                "price": product.get("price"),
+                "description": product.get("description", ""),
+                "short_description": product.get("short_description", ""),
+                "categories": [cat["name"] for cat in product.get("categories", [])],
+                "images": [img["src"] for img in product.get("images", [])],
+                "permalink": product.get("permalink"),
+                "stock_status": product.get("stock_status")
+            }
+            product_list.append(product_data)
+        
+        print(f"[OK] Category {category_id}: found {len(product_list)} products")
+        return product_list
+    except Exception as e:
+        print(f"Error fetching products by category {category_id}: {e}")
+        return []
+
 def get_product_by_id(product_id):
     """
     Fetch a specific product by ID.
