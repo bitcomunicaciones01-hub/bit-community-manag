@@ -151,10 +151,14 @@ def job_publish_pending():
             publish_url = res.get("url") if isinstance(res, dict) else res
             print(f"   SUCCESS: Published! URL: {publish_url}")
             
-            # 3. Archive the draft
+            # 3. Archive the draft with a unique name to prevent FileExistsError on Windows
             filename = os.path.basename(file_path)
-            os.rename(file_path, os.path.join(ARCHIVE_DIR, filename))
-            print("   Draft archived.")
+            name, ext = os.path.splitext(filename)
+            unique_filename = f"{name}_{int(time.time())}{ext}"
+            
+            # Use shutil.move or os.replace for safety, but here we just rename with unique name
+            os.rename(file_path, os.path.join(ARCHIVE_DIR, unique_filename))
+            print(f"   Draft archived as {unique_filename}.")
 
             # 4. Cleanup Temp Image
             try:
@@ -166,15 +170,25 @@ def job_publish_pending():
         else:
             print("   ERROR: Publishing failed. Moving to errors folder.")
             filename = os.path.basename(file_path)
-            os.rename(file_path, os.path.join(ERROR_DIR, filename))
+            name, ext = os.path.splitext(filename)
+            unique_filename = f"{name}_{int(time.time())}{ext}"
+            os.rename(file_path, os.path.join(ERROR_DIR, unique_filename))
             
     except Exception as e:
         print(f"   ERROR: Critical error publishing: {e}")
         try:
             filename = os.path.basename(file_path)
-            os.rename(file_path, os.path.join(ERROR_DIR, filename))
-        except:
-            pass
+            name, ext = os.path.splitext(filename)
+            unique_filename = f"{name}_error_{int(time.time())}{ext}"
+            os.rename(file_path, os.path.join(ERROR_DIR, unique_filename))
+        except Exception as inner_e:
+            print(f"   CRITICAL: Could not move file to errors folder: {inner_e}")
+            # Failsafe: Try to just delete the file so it doesn't loop infinitely
+            try:
+                os.remove(file_path)
+                print(f"   Failsafe: Deleted problematic draft {file_path}")
+            except:
+                pass
 
 if __name__ == "__main__":
     print("[BIT Scheduler Service Started]")
