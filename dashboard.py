@@ -127,7 +127,7 @@ with st.sidebar:
     st.markdown("---")
     
     # 1. GENERATION BUTTON (Restored)
-    if st.button("✨ Generar Nuevo Post", use_container_width=True, type="primary"):
+    if st.button("✨ Generar Nuevo Post", width="stretch", type="primary"):
         with st.status("🤖 Creando contenido...", expanded=True) as status:
             st.write("Analizando productos...")
             os.environ["DASHBOARD_MODE"] = "true"
@@ -277,7 +277,7 @@ if selected_file:
                 from PIL import Image
                 import time
                 display_img = Image.open(final_display_path)
-                preview_placeholder.image(display_img, use_container_width=True)
+                preview_placeholder.image(display_img, width="stretch")
             
             st.markdown(f"**{product.get('name', 'Producto')}**")
             st.caption(f"Precio: ${product.get('price', '0')}")
@@ -413,7 +413,7 @@ if selected_file:
                 current_caption = draft.get("draft_caption", "")
                 st.text_area("Caption de Instagram", value=current_caption, height=250, key=editor_key)
                 
-                if st.button("💾 Guardar Cambios Manuales", use_container_width=True, key=f"save_manual_{did}"):
+                if st.button("💾 Guardar Cambios Manuales", width="stretch", key=f"save_manual_{did}"):
                     draft["draft_caption"] = st.session_state[editor_key]
                     with open(selected_file, "w", encoding="utf-8") as f:
                         json.dump(draft, f, indent=2, ensure_ascii=False)
@@ -450,7 +450,7 @@ if selected_file:
                     f.write(uploaded_vid_img.getbuffer())
                 st.success("✅ Imagen lista para usar en la generación del video.")
 
-            if st.button("🚀 Generar Reel Animado", use_container_width=True, key=f"gen_reel_{did}"):
+            if st.button("🚀 Generar Reel Animado", width="stretch", key=f"gen_reel_{did}"):
                 provider = st.session_state.get("video_provider", "Gemini (Nano Banana)")
                 status_msg = f"🎬 Generando con {provider}..."
                 
@@ -626,7 +626,7 @@ if selected_file:
             
         btn_type = "primary"
         
-        if st.button(btn_label, type=btn_type, use_container_width=True, disabled=(status=="approved")):
+        if st.button(btn_label, type=btn_type, width="stretch", disabled=(status=="approved")):
             draft["approval_status"] = "approved"
             with open(selected_file, "w", encoding="utf-8") as f:
                 json.dump(draft, f, indent=2, ensure_ascii=False)
@@ -663,12 +663,12 @@ if selected_file:
             st.rerun()
             
     with c2:
-         if st.button("🗑️ Descartar", use_container_width=True):
+         if st.button("🗑️ Descartar", width="stretch"):
             os.remove(selected_file)
             st.rerun()
     
     with c3:
-        if st.button("🚫 Cancelar", use_container_width=True):
+        if st.button("🚫 Cancelar", width="stretch"):
             # Just go back to "Simple" mode or clear selection if we had one
             # Streamlit rerun will handle resetting local UI state
             st.rerun()
