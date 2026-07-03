@@ -1,9 +1,13 @@
 from woocommerce import API
 import os
+import logging
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
+from security import sanitize_search_query, validate_product_id
 
 load_dotenv()
+
+logger = logging.getLogger("woocommerce_client")
 
 # Initialize WooCommerce API
 wcapi = API(
@@ -75,20 +79,36 @@ def get_recent_products(days=7, limit=10):
 def search_products(query, limit=20):
     """
     Search products by string in WooCommerce.
+    El query es sanitizado antes de enviarse a la API.
     """
+    # Sanitizar el query antes de usarlo
+    safe_query = sanitize_search_query(query)
+    if not safe_query:
+        logger.warning("search_products: query vacío o inválido, se cancela la búsqueda")
+        return []
+
     try:
         response = wcapi.get("products", params={
-            "search": query,
-            "per_page": limit,
+            "search": safe_query,
+            "per_page": min(limit, 100),  # Limitar máximo permitido por WC
             "status": "publish",
             "stock_status": "instock"
         })
         
         if response.status_code != 200:
-            print(f"WooCommerce API Error: {response.status_code}")
+            logger.error(f"WooCommerce API Error en search_products: {response.status_code}")
             return []
         
-        products = response.json()
+        try:
+            products = response.json()
+        except Exception as json_err:
+            logger.error(f"search_products: respuesta JSON malformada: {json_err}")
+            return []
+
+        if not isinstance(products, list):
+            logger.warning(f"search_products: respuesta inesperada (no es lista): {type(products)}")
+            return []
+
         product_list = []
         for product in products:
             product_data = {
@@ -97,17 +117,17 @@ def search_products(query, limit=20):
                 "price": product.get("price"),
                 "description": product.get("description", ""),
                 "short_description": product.get("short_description", ""),
-                "categories": [cat["name"] for cat in product.get("categories", [])],
-                "images": [img["src"] for img in product.get("images", [])],
+                "categories": [cat["name"] for cat in product.get("categories", []) if isinstance(cat, dict)],
+                "images": [img["src"] for img in product.get("images", []) if isinstance(img, dict) and img.get("src")],
                 "permalink": product.get("permalink"),
                 "stock_status": product.get("stock_status")
             }
             product_list.append(product_data)
         
-        print(f"[OK] Search found {len(product_list)} products for '{query}'")
+        logger.info(f"search_products: '{safe_query}' → {len(product_list)} productos")
         return product_list
     except Exception as e:
-        print(f"Error searching WooCommerce products: {e}")
+        logger.error(f"Error en search_products: {e}")
         return []
 
 def get_categories(limit=100):
@@ -191,21 +211,30 @@ def get_products_by_category(category_id, limit=50):
 def get_product_by_id(product_id):
     """
     Fetch a specific product by ID.
-    
-    Args:
-        product_id: WooCommerce product ID
-    
-    Returns:
-        Product dictionary or None
+    Valida que el ID sea un entero positivo antes de construir la URL.
     """
+    # Validar el ID para prevenir inyección en la URL de la API
+    safe_id = validate_product_id(product_id)
+    if safe_id is None:
+        logger.warning(f"get_product_by_id: ID inválido '{product_id}'")
+        return None
+
     try:
-        response = wcapi.get(f"products/{product_id}")
+        response = wcapi.get(f"products/{safe_id}")
         
         if response.status_code != 200:
-            print(f"WooCommerce API Error: {response.status_code}")
+            logger.error(f"WooCommerce API Error en get_product_by_id({safe_id}): {response.status_code}")
             return None
         
-        product = response.json()
+        try:
+            product = response.json()
+        except Exception as json_err:
+            logger.error(f"get_product_by_id: respuesta JSON malformada: {json_err}")
+            return None
+
+        if not isinstance(product, dict):
+            logger.warning(f"get_product_by_id: respuesta inesperada para ID {safe_id}")
+            return None
         
         return {
             "id": product.get("id"),
@@ -215,14 +244,14 @@ def get_product_by_id(product_id):
             "sale_price": product.get("sale_price"),
             "description": product.get("description", ""),
             "short_description": product.get("short_description", ""),
-            "categories": [cat["name"] for cat in product.get("categories", [])],
-            "images": [img["src"] for img in product.get("images", [])],
+            "categories": [cat["name"] for cat in product.get("categories", []) if isinstance(cat, dict)],
+            "images": [img["src"] for img in product.get("images", []) if isinstance(img, dict) and img.get("src")],
             "permalink": product.get("permalink"),
             "stock_status": product.get("stock_status")
         }
         
     except Exception as e:
-        print(f"Error fetching product {product_id}: {e}")
+        logger.error(f"Error en get_product_by_id({safe_id}): {e}")
         return None
 
 if __name__ == "__main__":

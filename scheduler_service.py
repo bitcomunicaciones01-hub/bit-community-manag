@@ -4,15 +4,29 @@ import os
 import json
 import glob
 import sys
+import logging
 import pytz
 from datetime import datetime
 from dotenv import load_dotenv
+
+# Importar módulo de seguridad
+from security import (
+    validate_draft_json,
+    validate_media_path,
+    cleanup_orphaned_temp_files,
+    is_safe_path,
+    ALLOWED_DIRS,
+)
 
 # Import publisher logic
 from instagram_client import publish_instagram_post, publish_instagram_reel, get_instagram_client
 from tiktok_client import publish_tiktok_video
 
 load_dotenv()
+
+# Logger
+logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(asctime)s %(message)s")
+logger = logging.getLogger("scheduler")
 
 # Zona horaria Argentina
 AR_TZ = pytz.timezone("America/Argentina/Buenos_Aires")
@@ -39,32 +53,47 @@ def job_publish_pending():
     files = glob.glob(os.path.join(DRAFT_DIR, "*.json"))
     approved_files = []
     
-    # Iterate through all approved files and check time
+    # Iterar archivos aprobados y verificar tiempo
     for f in files:
+        # ── SEGURIDAD: Verificar que el archivo esté dentro del directorio de drafts ──
+        if not is_safe_path(DRAFT_DIR, f):
+            logger.error(f"[SECURITY ALERT] Path traversal bloqueado en draft: '{f}'")
+            continue
+
         try:
             with open(f, "r", encoding="utf-8") as json_file:
                 data = json.load(json_file)
-                if data.get("approval_status") == "approved":
-                    # Check if it's a future post
-                    publish_time_iso = data.get("publish_time_iso")
-                    if publish_time_iso:
-                        try:
-                            # Parse as naive and then localize to AR (assuming user meant AR time)
-                            scheduled_dt = datetime.fromisoformat(publish_time_iso)
-                            if scheduled_dt.tzinfo is None:
-                                scheduled_dt = AR_TZ.localize(scheduled_dt)
-                            
-                            if now_ar < scheduled_dt:
-                                # SKIP future posts
-                                print(f"[Scheduler]   WAIT: {os.path.basename(f)} for {scheduled_dt.strftime('%H:%M')} (Faltan: {scheduled_dt - now_ar})")
-                                continue
-                        except ValueError:
-                            pass
-                            
-                    approved_files.append((f, data))
-                    
+
+            # ── SEGURIDAD: Validar schema y rutas del draft ──
+            is_valid, validation_errors = validate_draft_json(data, f)
+            if not is_valid:
+                logger.warning(
+                    f"[Scheduler] Draft inválido, se omite: {os.path.basename(f)} — Errores: {validation_errors}"
+                )
+                continue
+
+            if data.get("approval_status") == "approved":
+                # Verificar si es un post futuro
+                publish_time_iso = data.get("publish_time_iso")
+                if publish_time_iso:
+                    try:
+                        scheduled_dt = datetime.fromisoformat(publish_time_iso)
+                        if scheduled_dt.tzinfo is None:
+                            scheduled_dt = AR_TZ.localize(scheduled_dt)
+                        
+                        if now_ar < scheduled_dt:
+                            # SKIP posts futuros
+                            logger.info(f"[Scheduler]   WAIT: {os.path.basename(f)} para {scheduled_dt.strftime('%H:%M')} (Faltan: {scheduled_dt - now_ar})")
+                            continue
+                    except ValueError as ve:
+                        logger.warning(f"[Scheduler]   publish_time_iso inválido en '{f}': {ve}")
+                        
+                approved_files.append((f, data))
+                
+        except json.JSONDecodeError as je:
+            logger.error(f"[Scheduler]   JSON malformado en '{f}': {je}")
         except Exception as e:
-            print(f"[Scheduler]   Error reading {f}: {e}")
+            logger.error(f"[Scheduler]   Error leyendo '{f}': {e}")
             
     # Sort candidates: prioritize those with a publish_time_iso (scheduled) 
     # and then by the scheduled time itself.
@@ -74,9 +103,9 @@ def job_publish_pending():
         if p_time:
             try:
                 return datetime.fromisoformat(p_time).timestamp()
-            except:
-                return 9999999999 # Fallback for invalid dates
-        return os.path.getmtime(path) # Fallback to file mtime
+            except ValueError:
+                return 9999999999  # Fallback para fechas inválidas
+        return os.path.getmtime(path)  # Fallback al mtime del archivo
 
     approved_files.sort(key=get_sort_key)
     
@@ -121,7 +150,8 @@ def job_publish_pending():
         
         # 2. Publish to chosen platform
         pref_fmt = draft.get("preferred_format", "image")
-        reel_path = draft.get("reel_path")
+        # ── SEGURIDAD: Validar ruta del video reel antes de usarla ──────────────
+        reel_path = draft.get("reel_path")  # Ya validado y normalizado por validate_draft_json
         
         # 3. Double check time (Safety)
         if draft.get("publish_time_iso"):
@@ -129,9 +159,10 @@ def job_publish_pending():
                 s_dt = datetime.fromisoformat(draft["publish_time_iso"])
                 if s_dt.tzinfo is None: s_dt = AR_TZ.localize(s_dt)
                 if now_ar < s_dt:
-                    print(f"   [Safety] Still future: {s_dt}. Aborting.")
+                    logger.info(f"   [Safety] Publicación futura: {s_dt}. Cancelando.")
                     return
-            except: pass
+            except ValueError as ve:
+                logger.warning(f"   [Safety] publish_time_iso inválido: {ve}")
 
         res = None
         if pref_fmt == "tiktok" and reel_path and os.path.exists(reel_path):
@@ -163,10 +194,12 @@ def job_publish_pending():
             # 4. Cleanup Temp Image
             try:
                 if final_image_path and "temp_publish" in final_image_path and os.path.exists(final_image_path):
-                    os.remove(final_image_path)
-                    print("   Temp image cleaned up.")
-            except:
-                pass
+                    # Verificar que la ruta sea segura antes de eliminar
+                    if is_safe_path(os.path.dirname(os.path.abspath(__file__)), final_image_path):
+                        os.remove(final_image_path)
+                        logger.info("   Temp image limpiada.")
+            except Exception as cleanup_err:
+                logger.warning(f"   No se pudo limpiar temp image: {cleanup_err}")
         else:
             print("   ERROR: Publishing failed. Moving to errors folder.")
             filename = os.path.basename(file_path)
@@ -193,13 +226,18 @@ def job_publish_pending():
 if __name__ == "__main__":
     print("[BIT Scheduler Service Started]")
     print("   Watching 'brain/drafts' for approved posts...")
-    print("   Schedule: 10:00 and 18:00 daily + Check every minute (debugging)")
+    print("   Schedule: 10:00 and 18:00 daily + Check every minute")
     
-    # For production:
-    # We check every minute to catch custom scheduled times accurately
+    # Limpieza inicial de archivos tempáneos huérfanos (>2 horas)
+    cleanup_orphaned_temp_files()
+    
+    # Verificar posts pendientes cada minuto
     schedule.every(1).minutes.do(job_publish_pending)
     
-    # Initial check
+    # Limpieza periódica de temp files cada 2 horas
+    schedule.every(2).hours.do(cleanup_orphaned_temp_files)
+    
+    # Verificación inicial
     job_publish_pending()
     
     # Loop de scheduler
