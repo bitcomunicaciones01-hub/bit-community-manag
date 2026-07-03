@@ -128,6 +128,8 @@ DRAFT_ALLOWED_FIELDS = {
     "id", "approval_status", "publish_time_iso", "draft_caption",
     "preferred_format", "reel_path", "selected_product", "design_settings",
     "created_at", "updated_at", "platform", "post_type",
+    "image_prompt", "retry_count", "recent_products", "research_summary",
+    "critique_feedback", "status",
 }
 
 # Valores permitidos para campos de tipo enum
