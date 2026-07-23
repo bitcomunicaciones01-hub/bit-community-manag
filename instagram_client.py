@@ -5,7 +5,7 @@ import time
 import random
 from dotenv import load_dotenv
 from instagrapi import Client
-from instagrapi.exceptions import LoginRequired, ChallengeRequired
+from instagrapi.exceptions import LoginRequired, ChallengeRequired, BadPassword
 from datetime import datetime
 import logging
 
@@ -67,16 +67,20 @@ def get_instagram_client():
 
 def login_with_session():
     """
-    Intenta login usando sesión guardada, o crea nueva sesión.
+    Intenta login usando sesion guardada (modo preferido).
     - En Railway: lee la sesion desde la variable INSTAGRAM_SESSION_B64
     - En local: usa el archivo brain/instagram_session.json
+
+    IMPORTANTE: NO intenta hacer login con usuario/contrasena si la IP
+    fue bloqueada. En ese caso, regenerar la sesion manualmente con:
+        python tools/import_cookies.py
     """
     import base64
     import json as _json
 
     client = get_instagram_client()
 
-    # ANTI-DETECCIÓN: pequeño delay antes de cada login
+    # ANTI-DETECCION: delay antes de cada login
     time.sleep(random.uniform(1, 3))
 
     try:
@@ -85,45 +89,68 @@ def login_with_session():
         if session_b64:
             logger.info("Cargando sesion desde variable de entorno (modo servidor)...")
             session_data = _json.loads(base64.b64decode(session_b64).decode())
-            # Escribir temporalmente para que load_settings pueda leerlo
             import tempfile
             with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp:
                 _json.dump(session_data, tmp)
                 tmp_path = tmp.name
             client.load_settings(tmp_path)
             os.unlink(tmp_path)
-            client.login(USERNAME, PASSWORD)
+            # Verificar sesion sin re-login con password
             try:
                 client.get_timeline_feed()
                 logger.info("[OK] Sesion de servidor valida")
                 return client
             except LoginRequired:
-                logger.warning("Sesion de servidor expirada, intentando login directo...")
-                client2 = get_instagram_client()
-                client2.login(USERNAME, PASSWORD)
-                logger.info("[OK] Login directo exitoso")
-                return client2
+                logger.error("[ERROR] Sesion de servidor expirada. Regenerar INSTAGRAM_SESSION_B64.")
+                return None
 
         # --- MODO LOCAL: archivo de sesion ---
         if os.path.exists(SESSION_FILE):
             logger.info("Cargando sesion guardada...")
             client.load_settings(SESSION_FILE)
-            client.login(USERNAME, PASSWORD)
-
+            # Verificar sesion cargada SIN llamar login() con password
+            # (evita el bloqueo de IP por intentos de login repetidos)
             try:
                 client.get_timeline_feed()
                 logger.info("[OK] Sesion valida reutilizada")
                 return client
             except LoginRequired:
-                logger.warning("Sesion expirada, creando nueva...")
-                os.remove(SESSION_FILE)
+                logger.warning("Sesion expirada. Regenerar con: python tools/import_cookies.py")
+                # NO eliminamos el archivo ni intentamos re-login automatico
+                # para evitar agravar el bloqueo de IP
+                return None
+            except Exception as feed_err:
+                # 403 u otro error — puede ser bloqueo de IP
+                logger.warning(f"Error verificando sesion ({feed_err}). Intentando login con password...")
+                # Solo intentamos password login si NO hay evidencia de bloqueo de IP
+                try:
+                    client2 = get_instagram_client()
+                    client2.login(USERNAME, PASSWORD)
+                    client2.dump_settings(SESSION_FILE)
+                    logger.info("[OK] Sesion renovada con password")
+                    return client2
+                except BadPassword as bp:
+                    logger.error(
+                        "[ERROR] IP BLOQUEADA por Instagram. "
+                        "Regenerar sesion manualmente: python tools/import_cookies.py\n"
+                        f"Detalle: {bp}"
+                    )
+                    return None
 
-        # Login nuevo
-        logger.info("Creando nueva sesion...")
-        client.login(USERNAME, PASSWORD)
-        client.dump_settings(SESSION_FILE)
-        logger.info("[OK] Nueva sesion creada y guardada")
-        return client
+        # Sin sesion guardada: intentar login directo
+        logger.info("Sin sesion guardada. Intentando login con password...")
+        try:
+            client.login(USERNAME, PASSWORD)
+            client.dump_settings(SESSION_FILE)
+            logger.info("[OK] Nueva sesion creada y guardada")
+            return client
+        except BadPassword as bp:
+            logger.error(
+                "[ERROR] IP BLOQUEADA por Instagram. "
+                "Para recuperar el acceso, ejecuta: python tools/import_cookies.py\n"
+                f"Detalle: {bp}"
+            )
+            return None
 
     except ChallengeRequired as e:
         logger.error("[ERROR] Instagram requiere verificacion. Ejecuta tools/interactive_login.py localmente.")

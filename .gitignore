@@ -4,8 +4,10 @@
 .env
 .env_fixed
 
-# Sesión de Instagram (se genera automáticamente)
-brain/instagram_session.json
+# Sesiones de Instagram y Gemini (se manejan por env var B64 en Railway)
+brain/*.json
+brain/errors/
+brain/*.png
 
 # Cache de Python
 __pycache__/
@@ -38,6 +40,5 @@ brain/drafts/
 brain/previews/
 brain/reels/
 brain/temp_frames/
-brain/gemini_session.json
 brain/gemini_profile/
 *.mp4

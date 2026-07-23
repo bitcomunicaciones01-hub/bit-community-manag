@@ -20,6 +20,7 @@ from security import (
 
 # Import publisher logic
 from instagram_client import publish_instagram_post, publish_instagram_reel, get_instagram_client
+from instagram_browser_publisher import publish_instagram_post_browser
 from tiktok_client import publish_tiktok_video
 
 load_dotenv()
@@ -172,11 +173,17 @@ def job_publish_pending():
             print("   Uploading to INSTAGRAM REEL as requested...")
             res = publish_instagram_reel(video_path=reel_path, caption=caption)
         else:
-            print("   Uploading to INSTAGRAM PHOTO (Default or Fallback)...")
-            res = publish_instagram_post(
-                image_url=final_image_path if final_image_path else "placeholder.jpg",
+            print("   Uploading to INSTAGRAM PHOTO (Browser)...")
+            res = publish_instagram_post_browser(
+                image_path=final_image_path if final_image_path else "placeholder.jpg",
                 caption=caption
             )
+            if not res:
+                print("   WARNING: Browser publishing failed. Trying API Fallback (Instagrapi)...")
+                res = publish_instagram_post(
+                    image_url=final_image_path if final_image_path else "placeholder.jpg",
+                    caption=caption
+                )
         
         if res:
             publish_url = res.get("url") if isinstance(res, dict) else res
