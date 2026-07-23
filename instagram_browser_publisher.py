@@ -35,8 +35,8 @@ def _load_credentials():
 
 def _ensure_session_file():
     """
-    Restaura la sesión desde INSTAGRAM_PLAYWRIGHT_SESSION_B64 siempre que la variable esté configurada.
-    Asegura que Railway utilice la última sesión inyectada sin importar archivos locales.
+    Restaura la sesión desde INSTAGRAM_PLAYWRIGHT_SESSION_B64 si está configurada.
+    Limpia espacios en blanco o saltos de línea al decodificar.
     """
     dst_path = os.path.abspath(PLAYWRIGHT_SESSION)
     session_b64 = os.getenv("INSTAGRAM_PLAYWRIGHT_SESSION_B64")
@@ -44,19 +44,25 @@ def _ensure_session_file():
     if session_b64:
         try:
             os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+            clean_b64 = session_b64.strip().replace("\n", "").replace("\r", "")
             with open(dst_path, "wb") as f:
-                f.write(base64.b64decode(session_b64))
+                f.write(base64.b64decode(clean_b64))
             logger.info("[OK] Sesión de Playwright cargada desde la variable INSTAGRAM_PLAYWRIGHT_SESSION_B64")
         except Exception as e:
             logger.error(f"[ERROR] Error decodificando INSTAGRAM_PLAYWRIGHT_SESSION_B64: {e}")
 
 
 async def _dismiss_dialogs(page):
-    """Cierra diálogos de notificaciones y guardado de sesión que tapan la pantalla."""
-    logger.info("Buscando diálogos de descarte...")
-    for txt in ["Not Now", "Ahora no", "Cancel", "Cancelar", "Cerrar", "Close"]:
+    """Cierra diálogos de notificaciones, cookies y guardado de sesión que tapan la pantalla."""
+    logger.info("Buscando diálogos de descarte/cookies...")
+    for txt in [
+        "Not Now", "Ahora no", "Cancel", "Cancelar", "Cerrar", "Close",
+        "Allow all cookies", "Allow essential and optional cookies", "Permitir todas las cookies", "Aceptar todas", "Declin"
+    ]:
         try:
-            btns = await page.query_selector_all(f'button:has-text("{txt}"), div[role="button"]:has-text("{txt}")')
+            btns = await page.query_selector_all(
+                f'button:has-text("{txt}"), div[role="button"]:has-text("{txt}"), a:has-text("{txt}")'
+            )
             for btn in btns:
                 if await btn.is_visible():
                     logger.info(f"Cerrando diálogo detectado: {txt}")
@@ -68,14 +74,14 @@ async def _dismiss_dialogs(page):
 
 async def publish_photo_browser(image_path: str, caption: str) -> dict | None:
     """
-    Publica una foto en Instagram de forma 100% autónoma y Headless.
+    Publica una foto en Instagram de forma 100% autónoma y Headless con medidas sigilosas (Stealth).
     Apto para Railway / servidores en la nube.
     """
     _load_credentials()
     _ensure_session_file()
 
     if not os.path.exists(image_path):
-        logger.error(f"[ERROR] Imagen no encontrada: {image_path}")
+        logger.error(f"[ERROR] Imagen no encontrada en disco: {image_path}")
         return None
 
     image_path = os.path.abspath(image_path)
@@ -84,7 +90,7 @@ async def publish_photo_browser(image_path: str, caption: str) -> dict | None:
     if not os.path.exists(playwright_session):
         logger.error(
             "[ERROR] No hay archivo de sesión de Playwright en: "
-            f"{playwright_session} ni variable INSTAGRAM_PLAYWRIGHT_SESSION_B64."
+            f"{playwright_session} ni variable INSTAGRAM_PLAYWRIGHT_SESSION_B64 configurada en Railway."
         )
         return None
 
@@ -96,7 +102,13 @@ async def publish_photo_browser(image_path: str, caption: str) -> dict | None:
         try:
             browser = await p.chromium.launch(
                 headless=is_headless,
-                args=["--disable-blink-features=AutomationControlled", "--no-sandbox", "--disable-setuid-sandbox"],
+                args=[
+                    "--disable-blink-features=AutomationControlled",
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-infobars",
+                    "--window-size=1280,900"
+                ],
             )
         except Exception as e:
             logger.error(f"Error lanzando Chromium: {e}")
@@ -111,20 +123,41 @@ async def publish_photo_browser(image_path: str, caption: str) -> dict | None:
                 "Chrome/126.0.0.0 Safari/537.36"
             ),
         )
+
+        # Inyectar scripts anti-detección (Stealth Evasion)
+        await context.add_init_script("""
+            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+            window.chrome = { runtime: {} };
+            Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+            Object.defineProperty(navigator, 'languages', { get: () => ['es-AR', 'es', 'en-US', 'en'] });
+        """)
+
         page = await context.new_page()
+
+        # Activar paquete stealth_async si está disponible
+        try:
+            from playwright_stealth import stealth_async
+            await stealth_async(page)
+            logger.info("[OK] Módulo Playwright-Stealth activado.")
+        except Exception as stealth_err:
+            logger.debug(f"playwright_stealth omitido: {stealth_err}")
 
         try:
             # ── PASO 1: VERIFICAR SESIÓN ──────────────────────────────────
             logger.info("Navegando a Instagram en modo autónomo...")
-            await page.goto("https://www.instagram.com/", wait_until="domcontentloaded", timeout=30000)
+            await page.goto("https://www.instagram.com/", wait_until="domcontentloaded", timeout=35000)
             await asyncio.sleep(4)
 
-            if "accounts/login" in page.url:
-                logger.error("[ERROR] Sesión expirada. Actualizar variable INSTAGRAM_PLAYWRIGHT_SESSION_B64 en Railway.")
+            current_url = page.url
+            page_title = await page.title()
+            logger.info(f"URL actual: {current_url} | Título: {page_title}")
+
+            if "accounts/login" in current_url:
+                logger.error("[ERROR CRÍTICO] Sesión de Instagram expirada en Railway. Actualizar la variable INSTAGRAM_PLAYWRIGHT_SESSION_B64.")
                 await browser.close()
                 return None
 
-            logger.info(f"[OK] Sesión activa confirmada en Instagram: {page.url}")
+            logger.info("[OK] Sesión activa confirmada en Instagram.")
             await _dismiss_dialogs(page)
 
             # ── PASO 2: ABRIR CREADOR DE POST ─────────────────────────────
@@ -146,12 +179,12 @@ async def publish_photo_browser(image_path: str, caption: str) -> dict | None:
                     continue
 
             if not new_post_clicked:
-                logger.warning("[WARN] No se encontró el botón Crear. Intentando navegación directa...")
+                logger.warning("[WARN] No se encontró el botón Crear. Intentando navegación directa a /create/style/...")
                 await page.goto("https://www.instagram.com/create/style/", wait_until="domcontentloaded", timeout=30000)
 
             await asyncio.sleep(2)
 
-            # Hacer clic en la opción exacta del submenú ('Post' / 'Publicación')
+            # Seleccionar opción del submenú ('Post' / 'Publicación')
             logger.info("Seleccionando opción 'Post / Publicación' en el submenú...")
             post_item = None
             for loc in [
@@ -171,35 +204,33 @@ async def publish_photo_browser(image_path: str, caption: str) -> dict | None:
                 box = await post_item.bounding_box()
                 if box:
                     await page.mouse.click(box["x"] + box["width"]/2, box["y"] + box["height"]/2)
-                    logger.info(f"[OK] Submenú 'Post' clickeado por coordenadas en el centro del elemento.")
+                    logger.info("[OK] Submenú 'Post' clickeado en coordenadas exactas.")
                 else:
                     await post_item.click(force=True)
-                    logger.info(f"[OK] Submenú 'Post' clickeado (force=True).")
+                    logger.info("[OK] Submenú 'Post' clickeado (force=True).")
 
             await asyncio.sleep(2)
 
             # ── PASO 3: SUBIR IMAGEN ──────────────────────────────────────
-            logger.info("Esperando selector de archivos (state=attached)...")
+            logger.info("Esperando selector de archivos en el DOM (state=attached)...")
             file_input = None
             try:
-                # state="attached" permite detectar el <input type="file"> aunque tenga display:none en el DOM de React
                 file_input = await page.wait_for_selector('input[type="file"]', state="attached", timeout=15000)
             except Exception as e:
                 logger.warning(f"wait_for_selector falló: {e}")
 
             if file_input:
-                logger.info("Cargando archivo de imagen...")
+                logger.info(f"Cargando imagen ({os.path.basename(image_path)})...")
                 await file_input.set_input_files(image_path)
-                logger.info("[OK] Imagen adjuntada exitosamente al modal.")
+                logger.info("[OK] Imagen adjuntada exitosamente al modal de Instagram.")
             else:
                 logger.error("[ERROR] No se pudo encontrar el input de archivos.")
-                await page.screenshot(path="brain/ig_debug_no_input.png")
                 await browser.close()
                 return None
 
             await asyncio.sleep(4)
 
-            # ── PASO 4: Crop → Filtros → Caption ─────────────────────────
+            # ── PASO 4: CROP / FILTROS / SIGUIENTE ────────────────────────
             for step in ["Recorte", "Filtros", "Caption"]:
                 next_btn = None
                 for sel in [
@@ -224,6 +255,7 @@ async def publish_photo_browser(image_path: str, caption: str) -> dict | None:
 
             # ── PASO 5: ESCRIBIR CAPTION ──────────────────────────────────
             logger.info("Escribiendo pie de foto (caption)...")
+            caption_written = False
             for sel in [
                 'div[aria-label="Write a caption..."]',
                 'div[aria-label="Escribe un pie de foto..."]',
@@ -236,10 +268,14 @@ async def publish_photo_browser(image_path: str, caption: str) -> dict | None:
                         await el.click(force=True)
                         await asyncio.sleep(0.5)
                         await page.keyboard.type(caption[:2200], delay=5)
+                        caption_written = True
                         logger.info("[OK] Pie de foto escrito.")
                         break
                 except:
                     continue
+
+            if not caption_written:
+                logger.warning("[WARN] No se detectó la casilla de caption, continuando...")
 
             await asyncio.sleep(2)
 
@@ -259,13 +295,12 @@ async def publish_photo_browser(image_path: str, caption: str) -> dict | None:
                     continue
 
             if not share_btn:
-                logger.error("[ERROR] Botón 'Share / Compartir' no encontrado.")
-                await page.screenshot(path="brain/ig_debug_no_share.png")
+                logger.error("[ERROR] Botón 'Share / Compartir' no encontrado en el paso final.")
                 await browser.close()
                 return None
 
             await share_btn.click(force=True)
-            logger.info("[OK] Botón 'Share' presionado. Procesando publicación...")
+            logger.info("[OK] Botón 'Share' presionado. Procesando subida en Instagram...")
             await asyncio.sleep(15)
 
             # ── PASO 7: CONFIRMACIÓN ──────────────────────────────────────
@@ -297,17 +332,12 @@ async def publish_photo_browser(image_path: str, caption: str) -> dict | None:
                 await browser.close()
                 return {"url": f"https://www.instagram.com/{target_user}/", "media_type": "image"}
             else:
-                await page.screenshot(path="brain/ig_debug_result.png")
-                logger.warning("[WARN] Publicación final no confirmada.")
+                logger.warning("[WARN] Publicación final finalizada sin diálogo de confirmación explícito.")
                 await browser.close()
                 return {"url": f"https://www.instagram.com/{USERNAME}/", "media_type": "image", "status": "unconfirmed"}
 
         except Exception as e:
-            logger.error(f"[ERROR] Excepción en Playwright: {e}")
-            try:
-                await page.screenshot(path="brain/ig_debug_error.png")
-            except:
-                pass
+            logger.error(f"[ERROR EXCEPCIÓN] Error inesperado en Playwright: {e}")
             await browser.close()
             return None
 
