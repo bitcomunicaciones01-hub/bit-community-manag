@@ -35,18 +35,18 @@ def _load_credentials():
 
 def _ensure_session_file():
     """
-    Restaura la sesión desde INSTAGRAM_PLAYWRIGHT_SESSION_B64 si el archivo local no existe.
-    Permite funcionamiento sin estado persistente en plataformas como Railway.
+    Restaura la sesión desde INSTAGRAM_PLAYWRIGHT_SESSION_B64 siempre que la variable esté configurada.
+    Asegura que Railway utilice la última sesión inyectada sin importar archivos locales.
     """
     dst_path = os.path.abspath(PLAYWRIGHT_SESSION)
     session_b64 = os.getenv("INSTAGRAM_PLAYWRIGHT_SESSION_B64")
     
-    if session_b64 and not os.path.exists(dst_path):
+    if session_b64:
         try:
             os.makedirs(os.path.dirname(dst_path), exist_ok=True)
             with open(dst_path, "wb") as f:
                 f.write(base64.b64decode(session_b64))
-            logger.info("[OK] Sesión de Playwright restaurada desde variable INSTAGRAM_PLAYWRIGHT_SESSION_B64")
+            logger.info("[OK] Sesión de Playwright cargada desde la variable INSTAGRAM_PLAYWRIGHT_SESSION_B64")
         except Exception as e:
             logger.error(f"[ERROR] Error decodificando INSTAGRAM_PLAYWRIGHT_SESSION_B64: {e}")
 
